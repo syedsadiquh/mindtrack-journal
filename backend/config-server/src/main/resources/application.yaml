@@ -1,3 +1,13 @@
+server:
+  port: 8888
+
 spring:
   application:
     name: config-server
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/syedsadiquh/mindtrack-journal
+          default-label: main
+          search-paths: config-data
