@@ -10,4 +10,4 @@ spring:
         git:
           uri: https://github.com/syedsadiquh/mindtrack-journal
           default-label: main
-          search-paths: config-data
+          search-paths: backend/config-data
