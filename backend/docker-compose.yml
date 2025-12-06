@@ -1,0 +1,135 @@
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres_mindtrack
+    environment:
+      POSTGRES_DB: mindtrack
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: root
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:6.2
+    container_name: redis_mindtrack
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:18.0.0
+    container_name: keycloak_mindtrack
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: root
+      KC_DB: postgres
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_DATABASE: mindtrack
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: root
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./realm-export.json:/opt/keycloak/data/import/realm.json
+    depends_on:
+      - postgres
+
+  config-server:
+    build: ./config-server
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      CONFIG_SERVER_HOST: config-server
+    depends_on:
+      config-server:
+        condition: service_healthy
+
+  gateway-service:
+    build: ./gateway-service
+    container_name: gateway-service
+    ports:
+      - "2000:2000"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      CONFIG_SERVER_HOST: config-server
+    depends_on:
+      - eureka-server
+      - config-server
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      CONFIG_SERVER_HOST: config-server
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mindtrack
+    depends_on:
+      - postgres
+      - eureka-server
+      - config-server
+
+  journal-service:
+    build: ./journal-service
+    container_name: journal-service
+    ports:
+      - "8082:8082"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      CONFIG_SERVER_HOST: config-server
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mindtrack
+    depends_on:
+      - postgres
+      - eureka-server
+      - config-server
+
+  analytics-service:
+    build: ./analytics-service
+    container_name: analytics-service
+    ports:
+      - "8083:8083"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      CONFIG_SERVER_HOST: config-server
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mindtrack
+    depends_on:
+      - postgres
+      - eureka-server
+      - config-server
+
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    ports:
+      - "8084:8084"
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka
+      CONFIG_SERVER_HOST: config-server
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/mindtrack
+    depends_on:
+      - postgres
+      - eureka-server
+      - config-server
+
+volumes:
+  postgres_data:
+  redis_data:
+

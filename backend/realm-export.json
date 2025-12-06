@@ -1,0 +1,72 @@
+{
+  "realm": "mindtrack",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": true,
+  "bruteForceProtected": true,
+  "clients": [
+    {
+      "clientId": "mindtrack-app",
+      "name": "MindTrack App",
+      "description": "Client for the MindTrack application",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true
+    }
+  ],
+  "users": [
+    {
+      "username": "user",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "free"
+      ]
+    }
+  ],
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "An administrator for the MindTrack application.",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "mindtrack"
+      },
+      {
+        "name": "premium",
+        "description": "A premium user with access to all features.",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "mindtrack"
+      },
+      {
+        "name": "free",
+        "description": "A free user with access to basic features.",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "mindtrack"
+      }
+    ]
+  }
+}
+
