@@ -1,6 +1,7 @@
 {
-  "realm": "mindtrack",
+  "realm": "mindtrack-journal",
   "enabled": true,
+  "displayName": "Mindtrack Journal",
   "sslRequired": "none",
   "registrationAllowed": true,
   "loginWithEmailAllowed": true,
@@ -10,22 +11,100 @@
   "bruteForceProtected": true,
   "clients": [
     {
-      "clientId": "mindtrack-app",
-      "name": "MindTrack App",
-      "description": "Client for the MindTrack application",
+      "clientId": "mindtrack-journal-frontend",
+      "name": "Mindtrack Journal Frontend",
+      "description": "Client for the frontend application",
       "enabled": true,
       "clientAuthenticatorType": "client-secret",
-      "redirectUris": [
-        "http://localhost:3000/*"
-      ],
-      "webOrigins": [
-        "http://localhost:3000"
-      ],
-      "publicClient": true,
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "publicClient": false,
       "protocol": "openid-connect",
-      "fullScopeAllowed": true
+      "fullScopeAllowed": false
+    },
+    {
+      "clientId": "user-service-client",
+      "name": "User Service Client",
+      "description": "Handles Auth Proxy (Login/Register) and internal User Service logic",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "user-service-secret",
+      "redirectUris": [],
+      "webOrigins": [],
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": false,
+      "bearerOnly": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "authorizationServicesEnabled": true
+    },
+    {
+      "clientId": "journal-service-client",
+      "name": "Journal Service Client",
+      "description": "Handles Journal Service",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "bearerOnly": true,
+      "publicClient": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "analytic-service-client",
+      "name": "Analytic Service Client",
+      "description": "Handles Analytic Service",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "bearerOnly": true,
+      "publicClient": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "payment-service-client",
+      "name": "Payment Service Client",
+      "description": "Handles Payment Service",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "bearerOnly": true,
+      "publicClient": false,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "api-gateway",
+      "name": "API Gateway",
+      "description": "Handles API Gateway",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "bearerOnly": false,
+      "publicClient": false,
+      "protocol": "openid-connect"
     }
   ],
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "description": "Administrator",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "mindtrack-journal"
+      },
+      {
+        "name": "PREMIUM",
+        "description": "Premium User",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "mindtrack-journal"
+      },
+      {
+        "name": "FREE",
+        "description": "Free User",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "mindtrack-journal"
+      }
+    ]
+  },
   "users": [
     {
       "username": "user",
@@ -38,35 +117,7 @@
           "temporary": false
         }
       ],
-      "realmRoles": [
-        "free"
-      ]
+      "realmRoles": ["free"]
     }
-  ],
-  "roles": {
-    "realm": [
-      {
-        "name": "admin",
-        "description": "An administrator for the MindTrack application.",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "mindtrack"
-      },
-      {
-        "name": "premium",
-        "description": "A premium user with access to all features.",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "mindtrack"
-      },
-      {
-        "name": "free",
-        "description": "A free user with access to basic features.",
-        "composite": false,
-        "clientRole": false,
-        "containerId": "mindtrack"
-      }
-    ]
-  }
+  ]
 }
-
