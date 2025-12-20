@@ -3,6 +3,7 @@ package com.syedsadiquh.userservice.service;
 import com.syedsadiquh.userservice.dto.TokenResponse;
 import com.syedsadiquh.userservice.dto.request.LoginRequestDto;
 import com.syedsadiquh.userservice.dto.request.RegisterRequestDto;
+import com.syedsadiquh.userservice.enums.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -12,6 +13,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +80,37 @@ public class AuthService {
                 .onStatus(status -> status.value() == 409, (req, resp) -> {
                     throw new RuntimeException("User already exists!");
                 })
+                .toBodilessEntity();
+        assignRole(request.getUsername(), Role.FREE_USER, adminToken);
+    }
+
+    private void assignRole(String username, Role roleName, String adminToken) {
+        // A. Find the User's ID
+        List<Map> users = restClient.get()
+                .uri(keycloakUrl + "/admin/realms/" + realm + "/users?username=" + username)
+                .header("Authorization", "Bearer " + adminToken)
+                .retrieve()
+                .body(List.class);
+
+        if (users == null || users.isEmpty()) {
+            throw new RuntimeException("User created but not found. This should not happen.");
+        }
+        String userId = (String) users.get(0).get("id");
+
+        // B. Fetch the Role Details
+        Map role = restClient.get()
+                .uri(keycloakUrl + "/admin/realms/" + realm + "/roles/" + roleName)
+                .header("Authorization", "Bearer " + adminToken)
+                .retrieve()
+                .body(Map.class);
+
+        // C. Assign the Role
+        restClient.post()
+                .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Collections.singletonList(role))
+                .retrieve()
                 .toBodilessEntity();
     }
 
