@@ -24,3 +24,10 @@ eureka:
     fetch-registry: true
     serviceUrl:
       defaultZone: http://${EUREKA_USERNAME:admin}:${EUREKA_PASSWORD:root}@${EUREKA_SERVER_HOST:localhost}:8761/eureka/
+
+keycloak:
+  realm: ${KEYCLOAK_REALM:mindtrack-journal}
+  auth-server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+  client-id: user-service-client
+  credentials:
+    client-secret: ${KEYCLOAK_USER_CLIENT_SECRET:user-service-secret}
