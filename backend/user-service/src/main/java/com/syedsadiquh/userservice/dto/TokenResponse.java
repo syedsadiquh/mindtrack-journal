@@ -6,9 +6,10 @@ import lombok.Data;
 @Data
 public class TokenResponse {
     @JsonProperty("access_token")
-    String accessToken;
+    private String accessToken;
     @JsonProperty("refresh_token")
-    String refreshToken;
+    private String refreshToken;
     @JsonProperty("expires_in")
-    String expiresIn;
+    private String expiresIn;
+    private String defaultTenantSlug;
 }

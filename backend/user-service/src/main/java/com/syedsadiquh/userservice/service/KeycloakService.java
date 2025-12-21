@@ -3,20 +3,18 @@ package com.syedsadiquh.userservice.service;
 import com.syedsadiquh.userservice.dto.TokenResponse;
 import com.syedsadiquh.userservice.dto.request.LoginRequestDto;
 import com.syedsadiquh.userservice.dto.request.RegisterRequestDto;
-import com.syedsadiquh.userservice.enums.Role;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.net.URI;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -54,7 +52,7 @@ public class KeycloakService {
     }
 
     // REGISTER NEW USER
-    public void register(RegisterRequestDto request) {
+    public String createKeycloakUser(RegisterRequestDto request) {
         String adminToken = getAdminToken();
 
         Map<String, Object> user = new HashMap<>();
@@ -70,7 +68,7 @@ public class KeycloakService {
         creds.put("temporary", false);
         user.put("credentials", List.of(creds));
 
-        restClient.post()
+        ResponseEntity<Void> response = restClient.post()
                 .uri(keycloakUrl + "/admin/realms/" + realm + "/users")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -80,10 +78,20 @@ public class KeycloakService {
                     throw new RuntimeException("User already exists!");
                 })
                 .toBodilessEntity();
-        assignRole(request.getUsername(), Role.FREE_USER, adminToken);
+        // 4. Extract User ID from the 'Location' Header
+        // Keycloak returns: Location: https://.../admin/realms/myrealm/users/550e8400-e29b-...
+        URI location = response.getHeaders().getLocation();
+        if (location == null) {
+            throw new RuntimeException("User created but Keycloak did not return a Location header.");
+        }
+
+        String path = location.getPath();
+        String userId = path.substring(path.lastIndexOf('/') + 1);
+
+        return userId;
     }
 
-    private void assignRole(String username, Role roleName, String adminToken) {
+    private void assignRole(String username, String roleName, String adminToken) {
         // A. Find the User's ID
         List<Map> users = restClient.get()
                 .uri(keycloakUrl + "/admin/realms/" + realm + "/users?username=" + username)
@@ -113,7 +121,15 @@ public class KeycloakService {
                 .toBodilessEntity();
     }
 
-    // Helper: Get Service Account Token
+    public void deleteKeycloakUser(String userId) {
+        String adminToken = getAdminToken();
+        restClient.delete()
+                .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userId)
+                .header("Authorization", "Bearer " + adminToken)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
     private String getAdminToken() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "client_credentials");
