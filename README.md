@@ -14,7 +14,7 @@
 
 ## Overview
 
-MindTrack Journal is a modern journaling application built with a "Privacy First" philosophy. We believe your thoughts should remain yours - encrypted, protected, and private. This application combines a seamless, distraction-free writing experience with robust security measures and private, self-hosted AI analytics.
+MindTrack Journal is a modern journaling application built with a "Privacy First" philosophy. Your thoughts should remain yours - encrypted, protected, and private. This application combines a seamless, distraction-free writing experience with robust security measures and private, self-hosted AI analytics.
 
 ## Features
 
@@ -22,15 +22,15 @@ MindTrack Journal is a modern journaling application built with a "Privacy First
 
 We designed the core journaling experience to be simple, secure, and distraction-free.
 
-- **Private Journaling Requirements:** The interface provides a clean canvas for your thoughts. It includes a Notion-style rich text editor supporting bold, italics, code blocks, and lists, allowing you to express yourself without limitations. You have full control to view, edit, and permanent delete your entries.
+- **Private Journaling Requirements:** The interface provides a clean canvas for your thoughts. It includes a Notion-style rich text editor supporting bold, italics, code blocks, and lists, allowing you to express yourself without limitations. You have full control to view, edit, and permanently delete your entries.
 - **Secure Account Management:** From registration to account deletion, every step is built with security in mind. We provide secure password resets via time-limited links and a comprehensive "right to be forgotten" feature that permanently erases all your data upon request.
 
 ### AI & Analytics
 
 The application provides intelligent insights into your emotional trends without compromising your privacy.
 
-- **Private Sentiment Analysis:** Your journal entries are automatically analyzed for sentiment (Positive, Negative, Neutral). Crucially, this is handled by a **self-hosted AI service**, ensuring your private text never leaves your infrastructure or is shared with third-party AI providers.
-- **Personal Analytics Dashboard:** Visualize your emotional journey with sentiment trend charts and a mood calendar. These insights are available strictly to you, securely rendered on your private dashboard.
+- **Private Sentiment Analysis:** Your journal entries are automatically analysed for sentiment (Positive, Negative, Neutral). Crucially, this is handled by a **self-hosted AI service**, ensuring your private text never leaves your infrastructure or is shared with third-party AI providers.
+- **Personal Analytics Dashboard:** Visualise your emotional journey with sentiment trend charts and a mood calendar. These insights are available strictly to you, securely rendered on your private dashboard.
 
 ### Security & Privacy
 
@@ -56,7 +56,7 @@ MindTrack Journal is engineered for scalability and maintainability.
 
 ## Roadmap
 
-- **Import from Notion:** We are building tools to seamlessly migrate your existing journals from Notion.
+- **Import from Notion:** We are building tools to migrate your existing journals from Notion seamlessly.
 - **Shariah-Compliant Payments:** Upcoming support for Tabby, Tamara, and PayHalal to provide ethical payment options.
 
 ---
@@ -64,10 +64,15 @@ MindTrack Journal is engineered for scalability and maintainability.
 ## Architecture
 
 ### System Architecture
-*[System Architecture Image Here]*
+<img width="5875" height="5291" alt="MindTrack Architecture excalidraw" src="https://github.com/user-attachments/assets/93f4a462-ac20-4d73-9e78-b7ac8084ecb4" />
+
 
 ### Database Schema
-*[Database Architecture Image Here]*
+<img width="7764" height="4772" alt="MindTrack Journal DB excalidraw" src="https://github.com/user-attachments/assets/5cdfce9a-f915-4824-8ee6-e886d597138f" />
+
+<img width="3972" height="3326" alt="MindTrack Users DB excalidraw" src="https://github.com/user-attachments/assets/832848c9-d36e-42e2-90ab-0d368db00ade" />
+
+<img width="5272" height="3259" alt="MindTrack Payments DB excalidraw" src="https://github.com/user-attachments/assets/abe23c25-979b-46f8-b619-5ed8115d6162" />
 
 ---
 
