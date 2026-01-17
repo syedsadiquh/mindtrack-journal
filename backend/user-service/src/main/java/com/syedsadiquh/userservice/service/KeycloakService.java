@@ -33,7 +33,6 @@ public class KeycloakService {
     @Value("${keycloak.credentials.client-secret}")
     private String clientSecret;
 
-
     // LOGIN USER
     public TokenResponse login(LoginRequestDto request) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -79,7 +78,8 @@ public class KeycloakService {
                 })
                 .toBodilessEntity();
         // 4. Extract User ID from the 'Location' Header
-        // Keycloak returns: Location: https://.../admin/realms/myrealm/users/550e8400-e29b-...
+        // Keycloak returns: Location:
+        // https://.../admin/realms/myrealm/users/550e8400-e29b-...
         URI location = response.getHeaders().getLocation();
         if (location == null) {
             throw new RuntimeException("User created but Keycloak did not return a Location header.");
@@ -143,6 +143,6 @@ public class KeycloakService {
                 .retrieve()
                 .body(JsonNode.class);
 
-        return response.get("access_token").asText();
+        return response.get("access_token").asString();
     }
 }
