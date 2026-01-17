@@ -89,6 +89,9 @@ fabric.properties
 !.idea/codeStyles
 !.idea/runConfigurations
 
+### VSCode All ###
+.vscode/*
+
 ### Java ###
 # Compiled class file
 *.class
