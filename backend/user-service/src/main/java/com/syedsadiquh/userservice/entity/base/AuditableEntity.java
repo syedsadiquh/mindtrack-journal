@@ -25,4 +25,6 @@ public class AuditableEntity {
     private String deletedBy;
     private LocalDateTime deletedAt;
 
+    private Boolean deleted = false;
+
 }

@@ -1,9 +1,11 @@
 package com.syedsadiquh.userservice.service;
 
 import com.nimbusds.jwt.SignedJWT;
-import com.syedsadiquh.userservice.dto.TokenResponse;
+import com.syedsadiquh.userservice.controller.BaseResponse;
+import com.syedsadiquh.userservice.dto.response.TokenResponse;
 import com.syedsadiquh.userservice.dto.request.LoginRequestDto;
 import com.syedsadiquh.userservice.dto.request.RegisterRequestDto;
+import com.syedsadiquh.userservice.dto.response.UserRegisterResponseDto;
 import com.syedsadiquh.userservice.entity.Tenant;
 import com.syedsadiquh.userservice.entity.TenantMember;
 import com.syedsadiquh.userservice.entity.User;
@@ -14,6 +16,7 @@ import com.syedsadiquh.userservice.exception.UserException;
 import com.syedsadiquh.userservice.repository.TenantMemberRepository;
 import com.syedsadiquh.userservice.repository.TenantRepository;
 import com.syedsadiquh.userservice.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -156,7 +159,7 @@ public class AuthService {
     }
 
     // REGISTER NEW USER
-    public void register(RegisterRequestDto request) {
+    public BaseResponse<UserRegisterResponseDto> register(RegisterRequestDto request) {
         String keycloakId = null;
         try {
             keycloakId = keycloakService.createKeycloakUser(request);
@@ -199,6 +202,13 @@ public class AuthService {
                     .build();
             tenantMemberRepository.save(membership);
 
+            UserRegisterResponseDto responseDto = UserRegisterResponseDto.builder()
+                    .email(savedUser.getEmail())
+                    .userId(savedUser.getId())
+                    .username(savedUser.getUsername())
+                    .build();
+            return new BaseResponse<>(true, "User Registered Successfully", responseDto);
+
         } catch (Exception e) {
             log.error("Registration failed. Initiating Rollback. Error: {}", e.getMessage());
             if (null != keycloakId) {
@@ -211,6 +221,48 @@ public class AuthService {
                 }
             }
             throw new UserException("Registration failed: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void deleteUser(String id) {
+        try {
+            // check if user with id exists
+            User user = userRepository.findById(UUID.fromString(id)).orElseThrow(
+                    () -> new UserException("User with id " + id + " does not exist")
+            );
+
+            // Delete from Keycloak -> prevents logging in
+            keycloakService.deleteKeycloakUser(id);
+
+            UUID userId = UUID.fromString(id);
+
+            List<TenantMember> memberships = tenantMemberRepository.findByUserId(userId);
+
+            // Getting all the tenants that the user is owner of
+            List<Tenant> ownerTenants = memberships.stream()
+                    .filter(tm -> tm.getRole() == Role.OWNER)
+                    .map(TenantMember::getTenant)
+                    .toList();
+
+            // Delete Tenant Memberships
+            tenantMemberRepository.deleteAll(memberships);
+
+            // Deactivate Owner tenants and marked for removal (soft delete)
+            ownerTenants.forEach(tenant -> {
+                tenant.setActive(false);
+                tenant.setDeleted(true);
+            });
+
+            // Soft Delete User
+            user.setActive(false);
+            user.setDeleted(true);
+
+            userRepository.save(user);
+            tenantRepository.saveAll(ownerTenants);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete user: " + e.getMessage());
         }
     }
 }

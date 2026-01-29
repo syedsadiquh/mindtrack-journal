@@ -1,8 +1,9 @@
 package com.syedsadiquh.userservice.controller;
 
-import com.syedsadiquh.userservice.dto.TokenResponse;
+import com.syedsadiquh.userservice.dto.response.TokenResponse;
 import com.syedsadiquh.userservice.dto.request.LoginRequestDto;
 import com.syedsadiquh.userservice.dto.request.RegisterRequestDto;
+import com.syedsadiquh.userservice.dto.response.UserRegisterResponseDto;
 import com.syedsadiquh.userservice.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,15 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody @Valid RegisterRequestDto registerRequestDto){
-        authService.register(registerRequestDto);
-        return ResponseEntity.ok("User Registered Successfully");
+    public ResponseEntity<BaseResponse<UserRegisterResponseDto>> register(@RequestBody @Valid RegisterRequestDto registerRequestDto){
+        BaseResponse<UserRegisterResponseDto> response = authService.register(registerRequestDto);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<BaseResponse<String>> deleteUser(@PathVariable String id){
+        authService.deleteUser(id);
+        return ResponseEntity.ok(new BaseResponse<>("User Deleted Successfully"));
     }
 
 }

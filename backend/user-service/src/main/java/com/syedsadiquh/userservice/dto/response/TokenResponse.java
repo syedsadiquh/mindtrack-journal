@@ -1,4 +1,4 @@
-package com.syedsadiquh.userservice.dto;
+package com.syedsadiquh.userservice.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
