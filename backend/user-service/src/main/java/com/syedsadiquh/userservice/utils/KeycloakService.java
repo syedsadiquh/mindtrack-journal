@@ -1,4 +1,4 @@
-package com.syedsadiquh.userservice.service;
+package com.syedsadiquh.userservice.utils;
 
 import com.syedsadiquh.userservice.dto.response.TokenResponse;
 import com.syedsadiquh.userservice.dto.request.LoginRequestDto;

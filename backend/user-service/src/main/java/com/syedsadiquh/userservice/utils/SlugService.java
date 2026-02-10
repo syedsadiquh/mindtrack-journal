@@ -1,4 +1,4 @@
-package com.syedsadiquh.userservice.service;
+package com.syedsadiquh.userservice.utils;
 
 import com.github.slugify.Slugify;
 import com.syedsadiquh.userservice.repository.TenantRepository;
