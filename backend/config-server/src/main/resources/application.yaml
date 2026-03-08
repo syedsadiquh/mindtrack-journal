@@ -11,3 +11,6 @@ spring:
           uri: https://github.com/syedsadiquh/mindtrack-journal
           default-label: main
           search-paths: backend/config-data
+
+        native:
+          search-locations: ${CONFIG_DATA_PATH:file:${user.dir}/backend/config-data/}
