@@ -3,7 +3,7 @@
 > **A secure, private, and intelligent journaling application where every feature is designed to protect user data and build trust.**
 
 [![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://www.java.com/)
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Boot 4.x](https://img.shields.io/badge/Spring_Boot_4.x-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -44,13 +44,14 @@ This is the foundation of MindTrack Journal. We employ industry-standard securit
   - **Application Level:** Content is encrypted by the application *before* it reaches the database. Even if the database were compromised, your journal entries would remain unreadable.
 - **Network Security:** We implement strict CORS policies, security headers (CSP, HSTS), and rate limiting on sensitive endpoints to protect against brute-force attacks.
 
-### Technical Architecture
+### Technical Architecture — "Citadel" Architecture
 
-MindTrack Journal is engineered for scalability and maintainability.
+MindTrack Journal uses a **Citadel Architecture**: a high-performance **hybrid architecture** that combines a Spring Boot 4.x Modulith for core domain workflows with supporting microservices for specialized capabilities such as analytics, payments, gateway routing, and private ML processing.
 
-- **Monorepo Architecture:** The Frontend, Backend, and ML services are managed in a single repository for streamlined development.
-- **Containerization:** Every service—Java Backend, Next.js Frontend, Python ML Service, and PostgreSQL—is fully dockerized.
-- **CI/CD & Testing:** Automated pipelines handle testing, building, and deployment, supported by a comprehensive suite of unit, integration, and component tests across all services.
+- **Hybrid Backend Architecture (Spring Modulith + Microservices):** The platform uses Spring Boot 4.x across its backend services. Core user and journal workflows run inside a Spring Modulith with strictly isolated bounded contexts and Spring Application Events for low-latency internal communication, while complementary microservices handle specialized responsibilities to preserve flexibility and deliver high performance at scale.
+- **Async ML Integration:** Journal entries are saved and return `201 Created` immediately. Sentiment analysis is triggered via a Spring Modulith event, handled asynchronously on a dedicated thread pool, and calls the ML service via Feign with exponential backoff retry. Serverless cold-starts never degrade user-facing latency.
+- **Monorepo Architecture:** Frontend, Backend, and ML services are managed in a single repository.
+- **Containerization:** Every component—Spring Boot 4.x services, Python ML Service, PostgreSQL, Keycloak, Redis—is fully dockerized.
 
 ---
 
@@ -79,10 +80,11 @@ MindTrack Journal is engineered for scalability and maintainability.
 ## Tech Stack
 
 - **Frontend:** Next.js, React (Modern, responsive UI with SSR)
-- **Backend:** Java, Spring Boot (Robust REST API with business logic and encryption)
-- **ML Service:** Python, FastAPI (High-performance local sentiment analysis)
-- **Database:** PostgreSQL (Relational storage with encryption support)
-- **DevOps:** Docker, GitHub Actions (Containerization and CI/CD)
+- **Backend:** Java 21, Spring Boot 4.x, Spring Modulith + Microservices (Hybrid architecture with bounded context isolation and specialized services)
+- **ML Service:** Python, FastAPI, TextBlob (Self-hosted sentiment analysis — private by design)
+- **Database:** PostgreSQL
+- **Auth:** Keycloak (OAuth2 / JWT resource server)
+- **DevOps:** Docker, Docker Compose (Containerization)
 
 ---
 
@@ -90,9 +92,9 @@ MindTrack Journal is engineered for scalability and maintainability.
 
 ### Prerequisites
 - Docker & Docker Compose
-- Java 17+ (for local logic dev)
+- Java 21+ (for local backend dev)
 - Node.js 18+ (for local frontend dev)
-- Python 3.9+ (for local ML dev)
+- Python 3.12+ (for local ML dev)
 
 ### Installation
 
@@ -102,14 +104,13 @@ MindTrack Journal is engineered for scalability and maintainability.
    cd mindtrack-journal
    ```
 
-2. **Start the application (Docker):**
+2. **Start the application (Hybrid Architecture):**
    ```bash
+   cd backend
    docker-compose up --build
    ```
 
 3. **Access the services:**
    - Frontend: `http://localhost:3000`
-   - Backend API: `http://localhost:2000`
+   - Backend API Gateway: `http://localhost:2000`
    - ML Service: `http://localhost:8000`
-
-

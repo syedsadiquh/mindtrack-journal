@@ -1,0 +1,67 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    user:
+      driver-class-name: org.postgresql.Driver
+      jdbc-url: jdbc:postgresql://localhost:5432/user_service
+      username: ${DB_USER:admin}
+      password: ${DB_PASS:root}
+    journal:
+      driver-class-name: org.postgresql.Driver
+      jdbc-url: jdbc:postgresql://localhost:5432/journal_service
+      username: ${DB_USER:admin}
+      password: ${DB_PASS:root}
+
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  modulith:
+    events:
+      republish-outstanding-events-on-restart: true
+
+  threads:
+    virtual:
+      enabled: true
+
+feign:
+  client:
+    config:
+      sentiment-analyzer:
+        connect-timeout: 5000
+        read-timeout: 30000
+
+ml:
+  sentiment-analyzer:
+    url: ${ML_SENTIMENT_URL:http://localhost:8000}
+
+eureka:
+  instance:
+    hostname: ${EUREKA_SERVER_HOST:localhost}
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    serviceUrl:
+      defaultZone: http://${EUREKA_USERNAME:admin}:${EUREKA_PASSWORD:root}@${EUREKA_SERVER_HOST:localhost}:8761/eureka/
+
+keycloak:
+  realm: ${KEYCLOAK_REALM:mindtrack-journal}
+  auth-server-url: ${KEYCLOAK_SERVER_URL:http://localhost:8080}
+  client-id: user-service-client
+  credentials:
+    client-secret: ${KEYCLOAK_USER_CLIENT_SECRET:user-service-secret}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,modulith
+  endpoint:
+    health:
+      show-details: always

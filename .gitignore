@@ -7,6 +7,9 @@
 # Icon must end with two \r
 Icon
 
+# IDEs
+.idea/
+.vscode/
 
 # Thumbnails
 ._*
