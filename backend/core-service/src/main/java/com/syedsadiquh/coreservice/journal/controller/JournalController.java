@@ -23,7 +23,7 @@ import java.util.UUID;
  * Extracts userId directly from the JWT security context — zero coupling to the user module.
  */
 @RestController
-@RequestMapping("/api/v1/journals")
+@RequestMapping("/api/v1/journal")
 @RequiredArgsConstructor
 public class JournalController {
 

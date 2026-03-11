@@ -1,6 +1,18 @@
 server:
   port: 2000
 
+services:
+  core-service: ${CORE_SERVICE_URL:lb://core-service}
+  payment-service: ${PAYMENT_SERVICE_URL:lb://payment-service}
+  analytics-service: ${ANALYTICS_SERVICE_URL:lb://analytics-service}
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:"http://localhost:3000"}
+    allowed-methods: ${APP_CORS_ALLOWED_METHODS:"GET, POST, PUT, DELETE, PATCH, OPTIONS"}
+    allowed-headers: ${APP_CORS_ALLOWED_HEADERS:"*"}
+    allow-credentials: ${APP_CORS_ALLOWED_CREDENTIALS:true}
+
 eureka:
   instance:
     hostname: ${EUREKA_SERVER_HOST:localhost}
