@@ -2,6 +2,7 @@ package com.syedsadiquh.coreservice.user.controller;
 
 import com.syedsadiquh.coreservice.shared.dto.BaseResponse;
 import com.syedsadiquh.coreservice.user.dto.request.LoginRequestDto;
+import com.syedsadiquh.coreservice.user.dto.request.RefreshTokenRequest;
 import com.syedsadiquh.coreservice.user.dto.request.RegisterRequestDto;
 import com.syedsadiquh.coreservice.user.dto.response.TokenResponse;
 import com.syedsadiquh.coreservice.user.dto.response.UserRegisterResponseDto;
@@ -35,6 +36,12 @@ public class AuthController {
     public ResponseEntity<BaseResponse<String>> deleteUser(@PathVariable String id) {
         authService.deleteUser(id);
         return ResponseEntity.ok(new BaseResponse<>("User Deleted Successfully"));
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<TokenResponse> refreshToken(@RequestBody @Valid RefreshTokenRequest tokenDto) {
+        TokenResponse token = authService.refreshToken(tokenDto.refreshToken());
+        return ResponseEntity.ok(token);
     }
 }
 

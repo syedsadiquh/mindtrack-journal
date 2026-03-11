@@ -235,5 +235,13 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Failed to delete user: " + e.getMessage());
         }
     }
+
+    public TokenResponse refreshToken(String refreshToken) {
+        try {
+            return keycloakService.refreshToken(refreshToken);
+        } catch (Exception e) {
+            throw new UserException("Token refresh failed: " + e.getMessage());
+        }
+    }
 }
 

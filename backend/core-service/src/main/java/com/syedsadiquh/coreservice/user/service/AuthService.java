@@ -12,5 +12,7 @@ public interface AuthService {
     BaseResponse<UserRegisterResponseDto> register(RegisterRequestDto request);
 
     void deleteUser(String id);
+
+    TokenResponse refreshToken(String refreshToken);
 }
 

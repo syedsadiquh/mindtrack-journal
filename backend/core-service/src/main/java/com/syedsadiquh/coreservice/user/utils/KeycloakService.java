@@ -50,7 +50,7 @@ public class KeycloakService {
                 .body(formData)
                 .retrieve()
                 .onStatus(status -> status.value() == 401, (req, resp) -> {
-                    throw new BadCredentialsException("Invalid email or password.");
+                    throw new BadCredentialsException("Invalid username or password.");
                 })
                 .body(TokenResponse.class);
     }
@@ -85,7 +85,7 @@ public class KeycloakService {
 
         URI location = response.getHeaders().getLocation();
         if (location == null) {
-            throw new RuntimeException("User created but Keycloak did not return a Location header.");
+            throw new RuntimeException("User created but Auth server did not return a Location header.");
         }
 
         String path = location.getPath();
@@ -145,10 +145,28 @@ public class KeycloakService {
                 .body(KeycloakTokenResponse.class);
 
         if (response == null || response.accessToken() == null) {
-            throw new RuntimeException("Failed to retrieve admin token from Keycloak");
+            throw new RuntimeException("Failed to retrieve admin token from Auth server");
         }
 
         return response.accessToken();
+    }
+
+    public TokenResponse refreshToken(String refreshToken) {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "refresh_token");
+        formData.add("client_id", clientId);
+        formData.add("client_secret", clientSecret);
+        formData.add("refresh_token", refreshToken);
+
+        return restClient.post()
+                .uri(keycloakUrl + "/realms/" + realm + "/protocol/openid-connect/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(formData)
+                .retrieve()
+                .onStatus(status -> status.value() == 400, (req, resp) -> {
+                    throw new UserException("Invalid refresh token.");
+                })
+                .body(TokenResponse.class);
     }
 
     private record KeycloakTokenResponse(
