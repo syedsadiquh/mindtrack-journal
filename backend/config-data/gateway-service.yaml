@@ -5,6 +5,7 @@ services:
   core-service: ${CORE_SERVICE_URL:lb://core-service}
   payment-service: ${PAYMENT_SERVICE_URL:lb://payment-service}
   analytics-service: ${ANALYTICS_SERVICE_URL:lb://analytics-service}
+  notification-service: ${NOTIFICATION_SERVICE_URL:lb://notification-service}
 
 app:
   cors:

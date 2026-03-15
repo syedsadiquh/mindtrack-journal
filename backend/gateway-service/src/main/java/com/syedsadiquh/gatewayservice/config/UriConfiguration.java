@@ -13,4 +13,5 @@ public class UriConfiguration {
     private String coreService;
     private String paymentService;
     private String analyticsService;
+    private String notificationService;
 }

@@ -16,6 +16,7 @@ public class RouteConfig {
         String coreServiceUri = uriConfiguration.getCoreService();
         String paymentServiceUri = uriConfiguration.getPaymentService();
         String analyticsServiceUri = uriConfiguration.getAnalyticsService();
+        String notificationServiceUri = uriConfiguration.getNotificationService();
 
         return builder.routes()
                 .route("core-user-routes", route -> route
@@ -29,6 +30,11 @@ public class RouteConfig {
                                 "/api/v1/journal/**"
                         )
                         .uri(coreServiceUri))
+                .route("notification-routes", route -> route
+                        .path(
+                                "/api/v1/notification/**"
+                        )
+                        .uri(notificationServiceUri))
                 .build();
     }
 }
