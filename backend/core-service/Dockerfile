@@ -1,18 +1,19 @@
-FROM eclipse-temurin:21-jdk AS build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 
-WORKDIR /app
-COPY pom.xml .
+WORKDIR /workspace
+COPY pom.xml ./
+RUN mvn -B dependency:go-offline
 COPY src ./src
+RUN mvn -B clean package -DskipTests
 
-RUN apt-get update && apt-get install -y maven && \
-    mvn clean package -DskipTests
-
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:21-jre-jammy
 
 WORKDIR /app
-COPY --from=build /app/target/*.jar app.jar
+RUN addgroup --system spring && adduser --system --ingroup spring spring
+COPY --from=build /workspace/target/core-service-0.0.1-SNAPSHOT.jar /app/app.jar
+USER spring:spring
 
 EXPOSE 8081
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75.0", "-jar", "/app/app.jar"]
 
