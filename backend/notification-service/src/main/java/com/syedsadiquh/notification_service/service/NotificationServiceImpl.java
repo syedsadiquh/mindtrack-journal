@@ -21,7 +21,7 @@ public class NotificationServiceImpl implements NotificationService {
     private String onboardingEmail;
 
     @Override
-    public void sendNotification(String email) {
+    public void sendTestNotification(String email) {
         log.info("Sending test email notification to: {}", email);
 
         CreateEmailOptions params = CreateEmailOptions.builder()
@@ -34,6 +34,25 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             CreateEmailResponse data = resend.emails().send(params);
             log.info("Email sent successfully: {}", data.getId());
+        } catch (ResendException e) {
+            throw new SendEmailException(e.getMessage());
+        }
+    }
+
+    @Override
+    public void sendOnboardingEmail(String email, String name) {
+        log.info("Sending onboarding email to: {}", email);
+
+        CreateEmailOptions params = CreateEmailOptions.builder()
+                .from(onboardingEmail)
+                .to(email)
+                .subject("Welcome to MindTrack!")
+                .html("<h1>Welcome, " + name + "!</h1><p>Thank you for joining our platform. We're excited to have you on board!</p>")
+                .build();
+
+        try {
+            CreateEmailResponse data = resend.emails().send(params);
+            log.info("Onboarding email sent successfully: {}", data.getId());
         } catch (ResendException e) {
             throw new SendEmailException(e.getMessage());
         }

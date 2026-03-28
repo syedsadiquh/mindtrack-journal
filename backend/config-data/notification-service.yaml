@@ -1,11 +1,28 @@
 server:
   port: 9090
 
+spring:
+  kafka:
+    topics:
+      onboarding: ${KAFKA_TOPIC_ONBOARDING:onboarding}
+
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:notification-service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false
+
+    listener:
+      ack-mode: manual
+
 resend:
   api:
     key: ${RESEND_API_KEY}
   from:
-    onboarding: ${RESEND_FROM_ONBOARDING:MindTrack Journal <onboarding@mindtrack.dev>}
+    onboarding: ${RESEND_FROM_ONBOARDING:MindTrack Journal <onboarding@resend.dev>}
 
 eureka:
   instance:

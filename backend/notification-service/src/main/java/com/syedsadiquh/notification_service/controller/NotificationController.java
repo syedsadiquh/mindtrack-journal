@@ -18,7 +18,7 @@ public class NotificationController {
     @PostMapping("/test")
     public void sendNotification(@RequestParam String email) {
         log.info("Preparing to send test email notification to: {}", email);
-        notificationService.sendNotification(email);
+        notificationService.sendTestNotification(email);
     }
 
 }

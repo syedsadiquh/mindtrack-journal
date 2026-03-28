@@ -13,6 +13,7 @@ import com.syedsadiquh.coreservice.user.entity.User;
 import com.syedsadiquh.coreservice.user.enums.PlanTier;
 import com.syedsadiquh.coreservice.user.enums.Role;
 import com.syedsadiquh.coreservice.user.exception.UserException;
+import com.syedsadiquh.coreservice.user.kafka.producer.NotificationProducerService;
 import com.syedsadiquh.coreservice.user.repository.TenantMemberRepository;
 import com.syedsadiquh.coreservice.user.repository.TenantRepository;
 import com.syedsadiquh.coreservice.user.repository.UserRepository;
@@ -21,6 +22,8 @@ import com.syedsadiquh.coreservice.user.utils.SlugService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
@@ -28,6 +31,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 @Service
@@ -39,6 +43,9 @@ public class AuthServiceImpl implements AuthService {
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final TenantMemberRepository tenantMemberRepository;
+    @Qualifier("applicationTaskExecutor")
+    private final TaskExecutor virtualExecutor;
+    private final NotificationProducerService notificationProducerService;
 
     @Override
     public TokenResponse login(LoginRequestDto request) {
@@ -61,6 +68,13 @@ public class AuthServiceImpl implements AuthService {
                         : "onboarding";
             }
             response.setDefaultTenantSlug(slug);
+
+            User finalUser = user;
+            CompletableFuture.runAsync(() -> {
+                log.info("Handling onboarding mail request on: {} ", Thread.currentThread());
+                notificationProducerService.sendOnboardingEmail(finalUser.getEmail(), finalUser.getName());
+            }, virtualExecutor);
+
 
             return response;
         } catch (UserException e) {

@@ -4,5 +4,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public interface NotificationService {
-    void sendNotification(String email);
+    void sendTestNotification(String email);
+
+    void sendOnboardingEmail(String email, String name);
 }
