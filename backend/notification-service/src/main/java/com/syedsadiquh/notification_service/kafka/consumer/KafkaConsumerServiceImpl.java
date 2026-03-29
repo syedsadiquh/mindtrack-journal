@@ -4,7 +4,6 @@ import com.syedsadiquh.notification_service.kafka.events.UserRegistered;
 import com.syedsadiquh.notification_service.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.catalina.User;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Service;
