@@ -69,13 +69,6 @@ public class AuthServiceImpl implements AuthService {
             }
             response.setDefaultTenantSlug(slug);
 
-            User finalUser = user;
-            CompletableFuture.runAsync(() -> {
-                log.info("Handling onboarding mail request on: {} ", Thread.currentThread());
-                notificationProducerService.sendOnboardingEmail(finalUser.getEmail(), finalUser.getName());
-            }, virtualExecutor);
-
-
             return response;
         } catch (UserException e) {
             throw new UserException("Login failed: " + e.getMessage());
@@ -195,6 +188,12 @@ public class AuthServiceImpl implements AuthService {
                     .userId(savedUser.getId())
                     .username(savedUser.getUsername())
                     .build();
+
+            CompletableFuture.runAsync(() -> {
+                log.info("Handling onboarding mail request on: {} ", Thread.currentThread());
+                notificationProducerService.sendOnboardingEmail(user.getEmail(), user.getName());
+            }, virtualExecutor);
+
             return new BaseResponse<>(true, "User Registered Successfully", responseDto);
 
         } catch (Exception e) {
