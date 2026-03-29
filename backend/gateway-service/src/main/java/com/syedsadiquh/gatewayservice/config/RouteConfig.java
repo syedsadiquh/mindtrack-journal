@@ -22,7 +22,8 @@ public class RouteConfig {
                 .route("core-user-routes", route -> route
                         .path(
                                 "/api/v1/auth/**",
-                                "/api/v1/admin/auth/**"
+                                "/api/v1/admin/auth/**",
+                                "/api/v1/user/**"
                         )
                         .uri(coreServiceUri))
                 .route("core-journal-routes", route -> route
