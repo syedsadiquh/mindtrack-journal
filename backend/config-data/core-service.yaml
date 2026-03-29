@@ -30,6 +30,16 @@ spring:
     virtual:
       enabled: true
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    topics:
+      onboarding: ${KAFKA_TOPIC_ONBOARDING:onboarding}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.add.type.headers: false
+
 feign:
   client:
     config:
