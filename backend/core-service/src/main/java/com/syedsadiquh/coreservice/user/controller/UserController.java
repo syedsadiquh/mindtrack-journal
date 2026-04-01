@@ -1,6 +1,7 @@
 package com.syedsadiquh.coreservice.user.controller;
 
 import com.syedsadiquh.coreservice.shared.dto.BaseResponse;
+import com.syedsadiquh.coreservice.user.dto.request.UpdateUserRequestDto;
 import com.syedsadiquh.coreservice.user.dto.response.UserDetailsResponseDto;
 import com.syedsadiquh.coreservice.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -8,14 +9,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/v1/user")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Slf4j
 public class UserController {
@@ -25,5 +24,13 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<BaseResponse<UserDetailsResponseDto>> getCurrentUserDetails(@AuthenticationPrincipal Jwt jwt) {
         return ResponseEntity.ok(userService.getCurrentUserDetails(UUID.fromString(jwt.getSubject())));
+    }
+
+    @PatchMapping("/me")
+    public ResponseEntity<BaseResponse<UserDetailsResponseDto>> updateCurrentUserDetails(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody UpdateUserRequestDto updateUserRequestDto
+    ) {
+        return ResponseEntity.ok(userService.updateCurrentUserDetails(UUID.fromString(jwt.getSubject()), updateUserRequestDto));
     }
 }

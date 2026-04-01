@@ -23,12 +23,12 @@ public class RouteConfig {
                         .path(
                                 "/api/v1/auth/**",
                                 "/api/v1/admin/auth/**",
-                                "/api/v1/user/**"
+                                "/api/v1/users/**"
                         )
                         .uri(coreServiceUri))
                 .route("core-journal-routes", route -> route
                         .path(
-                                "/api/v1/journal/**"
+                                "/api/v1/journals/**"
                         )
                         .uri(coreServiceUri))
                 .route("notification-routes", route -> route
