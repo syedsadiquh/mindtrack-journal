@@ -36,7 +36,7 @@ spring:
       onboarding: ${KAFKA_TOPIC_ONBOARDING:onboarding}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
       properties:
         spring.json.add.type.headers: false
 

@@ -52,7 +52,8 @@ public class AuthServiceImpl implements AuthService {
         try {
             TokenResponse response = keycloakService.login(request);
 
-            User user = userRepository.findByUsername(request.getUsername());
+            User user = userRepository.findByUsername(request.getUsername())
+                    .orElse(null);
 
             if (user == null) {
                 log.info("User logged in via Keycloak but missing locally. Syncing now...");
@@ -190,7 +191,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
 
             CompletableFuture.runAsync(() -> {
-                log.info("Handling onboarding mail request on: {} ", Thread.currentThread());
+                log.info("Handling onboarding mail request for: {} ", user.getEmail());
                 notificationProducerService.sendOnboardingEmail(user.getEmail(), user.getName());
             }, virtualExecutor);
 
