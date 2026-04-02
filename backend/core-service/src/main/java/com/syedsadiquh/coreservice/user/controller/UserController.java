@@ -1,6 +1,7 @@
 package com.syedsadiquh.coreservice.user.controller;
 
 import com.syedsadiquh.coreservice.shared.dto.BaseResponse;
+import com.syedsadiquh.coreservice.user.dto.request.UpdateUserAvatarRequestDto;
 import com.syedsadiquh.coreservice.user.dto.request.UpdateUserRequestDto;
 import com.syedsadiquh.coreservice.user.dto.response.UserDetailsResponseDto;
 import com.syedsadiquh.coreservice.user.service.UserService;
@@ -22,15 +23,23 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/me")
-    public ResponseEntity<BaseResponse<UserDetailsResponseDto>> getCurrentUserDetails(@AuthenticationPrincipal Jwt jwt) {
-        return ResponseEntity.ok(userService.getCurrentUserDetails(UUID.fromString(jwt.getSubject())));
+    public ResponseEntity<BaseResponse<UserDetailsResponseDto>> getUserDetails(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(userService.getUserDetails(UUID.fromString(jwt.getSubject())));
     }
 
     @PatchMapping("/me")
-    public ResponseEntity<BaseResponse<UserDetailsResponseDto>> updateCurrentUserDetails(
+    public ResponseEntity<BaseResponse<UserDetailsResponseDto>> updateUserDetails(
             @AuthenticationPrincipal Jwt jwt,
             @RequestBody UpdateUserRequestDto updateUserRequestDto
     ) {
-        return ResponseEntity.ok(userService.updateCurrentUserDetails(UUID.fromString(jwt.getSubject()), updateUserRequestDto));
+        return ResponseEntity.ok(userService.updateUserDetails(UUID.fromString(jwt.getSubject()), updateUserRequestDto));
+    }
+
+    @PutMapping("/me/update-avatar")
+    public ResponseEntity<BaseResponse<String>> updateUserAvatar(
+            @AuthenticationPrincipal Jwt jwt,
+            @ModelAttribute UpdateUserAvatarRequestDto requestDto
+    ) {
+        return ResponseEntity.of(userService.updateUserAvatar(UUID.fromString(jwt.getSubject()), requestDto));
     }
 }

@@ -1,6 +1,7 @@
 package com.syedsadiquh.coreservice.user.service;
 
 import com.syedsadiquh.coreservice.shared.dto.BaseResponse;
+import com.syedsadiquh.coreservice.user.dto.request.UpdateUserAvatarRequestDto;
 import com.syedsadiquh.coreservice.user.dto.request.UpdateUserRequestDto;
 import com.syedsadiquh.coreservice.user.dto.response.TenantResponseDto;
 import com.syedsadiquh.coreservice.user.dto.response.UserDetailsResponseDto;
@@ -23,7 +24,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
 
-    public BaseResponse<UserDetailsResponseDto> getCurrentUserDetails(UUID userId) {
+    public BaseResponse<UserDetailsResponseDto> getUserDetails(UUID userId) {
         try {
             log.info("Getting current user details for userId {}", userId);
             User user = userRepository.findById(userId)
@@ -62,7 +63,7 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    public BaseResponse<UserDetailsResponseDto> updateCurrentUserDetails(UUID uuid, UpdateUserRequestDto updateUserRequestDto) {
+    public BaseResponse<UserDetailsResponseDto> updateUserDetails(UUID uuid, UpdateUserRequestDto updateUserRequestDto) {
         try {
             log.info("Updating current user details for userId {}", uuid);
             User user = userRepository.findById(uuid)
@@ -127,6 +128,27 @@ public class UserServiceImpl implements UserService {
                     .build();
         } catch (Exception e) {
             log.error("Unable to update user details for userId {}. ERROR: {}", uuid, e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    public BaseResponse<String> updateUserAvatar(UUID uuid, UpdateUserAvatarRequestDto requestDto) {
+        try {
+            log.info("Updating avatar for user details for userId {}", uuid);
+            User user = userRepository.findById(uuid)
+                    .orElseThrow(() -> new UserException("User not found"));
+
+            user.setAvatarUrl(requestDto.getAvatarUrl());
+
+            userRepository.save(user);
+
+            return BaseResponse.<String>builder()
+                    .success(true)
+                    .message("User avatar updated successfully")
+                    .data(requestDto.getAvatarUrl())
+                    .build();
+        } catch (Exception e) {
+            log.error("Unable to get user details for userId {}. ERROR: {}", uuid, e.getMessage());
             throw new RuntimeException(e);
         }
     }
