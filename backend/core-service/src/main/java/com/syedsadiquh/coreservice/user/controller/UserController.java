@@ -5,6 +5,7 @@ import com.syedsadiquh.coreservice.user.dto.request.UpdateUserAvatarRequestDto;
 import com.syedsadiquh.coreservice.user.dto.request.UpdateUserRequestDto;
 import com.syedsadiquh.coreservice.user.dto.response.UserDetailsResponseDto;
 import com.syedsadiquh.coreservice.user.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +39,8 @@ public class UserController {
     @PutMapping("/me/update-avatar")
     public ResponseEntity<BaseResponse<String>> updateUserAvatar(
             @AuthenticationPrincipal Jwt jwt,
-            @ModelAttribute UpdateUserAvatarRequestDto requestDto
+            @Valid @ModelAttribute UpdateUserAvatarRequestDto requestDto
     ) {
-        return ResponseEntity.of(userService.updateUserAvatar(UUID.fromString(jwt.getSubject()), requestDto));
+        return ResponseEntity.ok(userService.updateUserAvatar(UUID.fromString(jwt.getSubject()), requestDto));
     }
 }

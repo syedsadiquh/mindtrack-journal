@@ -59,7 +59,7 @@ public class UserServiceImpl implements UserService {
                     .build();
         } catch (Exception e) {
             log.error("Unable to get user details for userId {}. ERROR: {}", userId, e.getMessage());
-            throw new RuntimeException(e);
+            throw e;
         }
     }
 
@@ -91,6 +91,7 @@ public class UserServiceImpl implements UserService {
             if (updateUserRequestDto.getTimezone() != null) user.setTimezone(updateUserRequestDto.getTimezone());
             if (updateUserRequestDto.getAddress() != null) user.setAddress(updateUserRequestDto.getAddress());
             if (updateUserRequestDto.getActive() != null) user.setActive(updateUserRequestDto.getActive());
+            // todo: check if the user is allowed to join the new tenant using membership
             if (updateUserRequestDto.getDefaultTenant() != null) {
                 Tenant newTenant = tenantRepository.findById(UUID.fromString(updateUserRequestDto.getDefaultTenant()))
                         .orElseThrow(() -> new UserException("Tenant not found"));
@@ -128,7 +129,7 @@ public class UserServiceImpl implements UserService {
                     .build();
         } catch (Exception e) {
             log.error("Unable to update user details for userId {}. ERROR: {}", uuid, e.getMessage());
-            throw new RuntimeException(e);
+            throw e;
         }
     }
 
@@ -148,8 +149,8 @@ public class UserServiceImpl implements UserService {
                     .data(requestDto.getAvatarUrl())
                     .build();
         } catch (Exception e) {
-            log.error("Unable to get user details for userId {}. ERROR: {}", uuid, e.getMessage());
-            throw new RuntimeException(e);
+            log.error("Unable to update user avatar for userId {}. ERROR: {}", uuid, e.getMessage());
+            throw e;
         }
     }
 
