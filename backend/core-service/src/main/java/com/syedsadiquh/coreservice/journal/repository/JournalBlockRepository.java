@@ -1,7 +1,6 @@
 package com.syedsadiquh.coreservice.journal.repository;
 
 import com.syedsadiquh.coreservice.journal.entity.JournalBlock;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
