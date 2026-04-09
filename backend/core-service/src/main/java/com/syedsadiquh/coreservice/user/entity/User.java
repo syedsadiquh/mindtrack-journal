@@ -3,6 +3,7 @@ package com.syedsadiquh.coreservice.user.entity;
 import com.syedsadiquh.coreservice.shared.entity.AuditableEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -18,9 +19,15 @@ import java.util.UUID;
 @Entity
 @Table(name = "users", indexes = {
         @Index(name = "idx_user_username", columnList = "username"),
-        @Index(name = "idx_user_email", columnList = "email")
+        @Index(name = "idx_user_email", columnList = "email"),
+        @Index(name = "idx_user_full_name", columnList = "full_name")
 })
 public class User extends AuditableEntity {
+
+    /**
+     * Primary key — sourced from Keycloak's 'sub' claim, NOT auto-generated.
+     * This is why User extends AuditableEntity (no UUID v7) instead of BaseEntity.
+     */
     @Id
     private UUID id;
 
@@ -28,27 +35,33 @@ public class User extends AuditableEntity {
     @JoinColumn(name = "default_tenant_id", nullable = false)
     private Tenant defaultTenant;
 
-    @Column(unique = true)
+    @Column(unique = true, length = 100)
     private String username;
 
-    @Column(nullable = false)
-    private String name;
+    @Column(name = "full_name", nullable = false)
+    private String fullName;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 255)
     private String email;
 
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    @Column(name = "country_code", length = 5)
     private String countryCode;
 
     private String phone;
 
+    @Column(length = 100)
     private String timezone;
 
     private String address;
 
+    @Column(name = "language", nullable = false, length = 10)
+    @Builder.Default
+    private String language = "en";
+
     @Column(nullable = false)
+    @Builder.Default
     private Boolean active = true;
 }
-

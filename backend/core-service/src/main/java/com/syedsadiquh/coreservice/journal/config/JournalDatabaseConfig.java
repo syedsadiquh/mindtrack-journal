@@ -35,7 +35,7 @@ public class JournalDatabaseConfig {
         return builder
                 .dataSource(dataSource)
                 .packages("com.syedsadiquh.coreservice.journal.entity")
-                .persistenceUnit("user")
+                .persistenceUnit("journal")
                 .build();
     }
 

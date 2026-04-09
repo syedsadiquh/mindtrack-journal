@@ -12,7 +12,7 @@ import java.util.UUID;
 public class UserDetailsResponseDto {
     private UUID id;
     private String username;
-    private String name;
+    private String fullName;
     private String email;
     private TenantResponseDto defaultTenant;
     private Boolean active;
