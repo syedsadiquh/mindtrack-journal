@@ -6,12 +6,15 @@ import com.syedsadiquh.coreservice.journal.dto.request.UpdateJournalPageRequest;
 import com.syedsadiquh.coreservice.journal.dto.response.*;
 import com.syedsadiquh.coreservice.journal.entity.*;
 import com.syedsadiquh.coreservice.journal.event.BlockCreatedEvent;
+import com.syedsadiquh.coreservice.journal.exception.JournalBadRequestException;
 import com.syedsadiquh.coreservice.journal.exception.JournalException;
 import com.syedsadiquh.coreservice.journal.exception.JournalNotFoundException;
+import com.syedsadiquh.coreservice.journal.exception.TenantAccessDeniedException;
 import com.syedsadiquh.coreservice.journal.repository.JournalBlockRepository;
 import com.syedsadiquh.coreservice.journal.repository.JournalPageRepository;
 import com.syedsadiquh.coreservice.journal.repository.TagRepository;
 import com.syedsadiquh.coreservice.journal.util.SanitizerUtil;
+import com.syedsadiquh.coreservice.user.api.TenantMembershipService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -23,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -32,6 +36,7 @@ public class JournalPageServiceImpl implements JournalPageService {
     private final JournalPageRepository pageRepository;
     private final JournalBlockRepository blockRepository;
     private final TagRepository tagRepository;
+    private final TenantMembershipService tenantMembershipService;
     private final ApplicationEventPublisher eventPublisher;
     private final SanitizerUtil sanitizerUtil;
 
@@ -39,6 +44,7 @@ public class JournalPageServiceImpl implements JournalPageService {
     @Override
     public JournalPageDetailResponse createPage(UUID userId, CreateJournalPageRequest request) {
         try {
+            requireMembership(userId, request.getTenantId());
             JournalPage page = JournalPage.builder()
                     .tenantId(request.getTenantId())
                     .userId(userId)
@@ -53,8 +59,16 @@ public class JournalPageServiceImpl implements JournalPageService {
                     .build();
 
             if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
-                Set<Tag> tags = new HashSet<>(tagRepository.findAllById(request.getTagIds()));
-                page.setTags(tags);
+                List<UUID> tagIds = request.getTagIds();
+                List<Tag> tags = tagRepository.findByIdInAndTenantIdAndDeletedFalse(tagIds, request.getTenantId());
+                if (tags.size() != tagIds.size()) {
+                    Set<UUID> foundIds = tags.stream().map(Tag::getId).collect(Collectors.toSet());
+                    Set<UUID> invalidIds = tagIds.stream()
+                            .filter(id -> !foundIds.contains(id))
+                            .collect(Collectors.toSet());
+                    throw new JournalBadRequestException("Tag IDs do not belong to this tenant or do not exist: " + invalidIds);
+                }
+                page.setTags(new HashSet<>(tags));
             }
 
             JournalPage saved = pageRepository.save(page);
@@ -90,6 +104,8 @@ public class JournalPageServiceImpl implements JournalPageService {
 
             log.info("Journal page created: {} for user: {} on date: {}", saved.getId(), userId, saved.getEntryDate());
             return toDetailResponse(saved);
+        } catch (TenantAccessDeniedException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error creating journal page for user: {} - {}", userId, e.getMessage(), e);
             throw new JournalException("Something went wrong. Failed to create journal page. Please try again.");
@@ -173,8 +189,8 @@ public class JournalPageServiceImpl implements JournalPageService {
             JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
                     .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
 
-            Tag tag = tagRepository.findById(tagId)
-                    .orElseThrow(() -> new JournalNotFoundException("Tag not found: " + tagId));
+            Tag tag = tagRepository.findByIdAndTenantIdAndDeletedFalse(tagId, page.getTenantId())
+                    .orElseThrow(() -> new JournalNotFoundException("Tag not found or does not belong to this tenant: " + tagId));
 
             page.getTags().add(tag);
             pageRepository.save(page);
@@ -198,6 +214,12 @@ public class JournalPageServiceImpl implements JournalPageService {
         } catch (Exception e) {
             log.error("Error removing tag from journal page for user: {} - {}", userId, e.getMessage(), e);
             throw new JournalException("Something went wrong. Failed to remove tag from journal page. Please try again.");
+        }
+    }
+
+    private void requireMembership(UUID userId, UUID tenantId) {
+        if (!tenantMembershipService.isMember(tenantId, userId)) {
+            throw new TenantAccessDeniedException("Access denied: user is not a member of tenant " + tenantId);
         }
     }
 

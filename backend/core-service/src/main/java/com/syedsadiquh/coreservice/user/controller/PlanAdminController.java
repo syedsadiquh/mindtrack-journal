@@ -54,12 +54,14 @@ public class PlanAdminController {
     }
 
     @GetMapping
+    @PreAuthorize(SystemRole.HAS_ROLE_ADMIN_OR_SYS_ADMIN)
     public ResponseEntity<BaseResponse<List<PlanResponse>>> getActivePlans() {
         List<PlanResponse> plans = planService.getAllActivePlans();
         return ResponseEntity.ok(new BaseResponse<>(true, "Plans retrieved", plans));
     }
 
     @GetMapping("/{planId}")
+    @PreAuthorize(SystemRole.HAS_ROLE_ADMIN_OR_SYS_ADMIN)
     public ResponseEntity<BaseResponse<PlanResponse>> getPlan(@PathVariable UUID planId) {
         PlanResponse response = planService.getPlan(planId);
         return ResponseEntity.ok(new BaseResponse<>(true, "Plan retrieved", response));

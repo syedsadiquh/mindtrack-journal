@@ -17,7 +17,7 @@ import java.util.UUID;
 @SuperBuilder
 @Entity
 @Table(name = "tags", indexes = {
-        @Index(name = "idx_tag_tenant_id", columnList = "tenantId")
+        @Index(name = "idx_tag_tenant_id", columnList = "tenant_id")
 })
 /* NOTE: -
   Unique constraint is to be maintained by the application layer to allow the same tag names across different tenants,

@@ -19,10 +19,10 @@ import java.util.*;
 @SuperBuilder
 @Entity
 @Table(name = "journal_pages", indexes = {
-        @Index(name = "idx_journal_page_user_id", columnList = "userId"),
-        @Index(name = "idx_journal_page_tenant_id", columnList = "tenantId"),
-        @Index(name = "idx_journal_page_entry_date", columnList = "entryDate"),
-        @Index(name = "idx_journal_page_created_at", columnList = "createdAt")
+        @Index(name = "idx_journal_page_user_id", columnList = "user_id"),
+        @Index(name = "idx_journal_page_tenant_id", columnList = "tenant_id"),
+        @Index(name = "idx_journal_page_entry_date", columnList = "entry_date"),
+        @Index(name = "idx_journal_page_created_at", columnList = "created_at")
 })
 public class JournalPage extends BaseEntity {
 

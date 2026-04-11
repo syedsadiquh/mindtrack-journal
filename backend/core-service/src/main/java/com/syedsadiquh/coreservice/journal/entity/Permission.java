@@ -36,7 +36,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "permissions", indexes = {
         @Index(name = "idx_permissions_user_id", columnList = "user_id"),
-        @Index(name = "idx_permissions_target", columnList = "targetType, target_id")
+        @Index(name = "idx_permissions_target", columnList = "target_type, target_id")
 })
 public class Permission extends BaseEntity {
 

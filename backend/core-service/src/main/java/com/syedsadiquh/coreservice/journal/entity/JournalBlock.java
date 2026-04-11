@@ -25,8 +25,8 @@ import java.util.UUID;
 @Entity
 @Table(name = "journal_blocks", indexes = {
         @Index(name = "idx_block_page_id", columnList = "page_id"),
-        @Index(name = "idx_block_tenant_id", columnList = "tenantId"),
-        @Index(name = "idx_block_order", columnList = "page_id, orderIndex")
+        @Index(name = "idx_block_tenant_id", columnList = "tenant_id"),
+        @Index(name = "idx_block_order", columnList = "page_id, order_index")
 })
 public class JournalBlock extends BaseEntity {
 
