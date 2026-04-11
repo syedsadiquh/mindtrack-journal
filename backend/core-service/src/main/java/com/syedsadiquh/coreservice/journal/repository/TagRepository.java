@@ -13,5 +13,5 @@ public interface TagRepository extends JpaRepository<Tag, UUID> {
 
     Optional<Tag> findByIdAndTenantIdAndDeletedFalse(UUID id, UUID tenantId);
 
-    boolean existsByTenantIdAndNameAndDeletedFalse(UUID tenantId, String name);
+    boolean existsByTenantIdAndNameIgnoreCaseAndDeletedFalse(UUID tenantId, String name);
 }

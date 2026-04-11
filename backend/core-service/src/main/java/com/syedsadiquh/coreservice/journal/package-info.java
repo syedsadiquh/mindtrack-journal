@@ -1,9 +1,10 @@
 /**
  * Journal module — bounded context for journal entries and sentiment analysis.
- * Communicates with the user module only via userId from the JWT security context.
+ * Depends on the user module's public API ({@code user::api}) for
+ * cross-module calls or the data comes via the JWT.
  */
 @org.springframework.modulith.ApplicationModule(
-        allowedDependencies = {"shared", "infrastructure"}
+        allowedDependencies = {"shared", "infrastructure", "user::api"}
 )
 package com.syedsadiquh.coreservice.journal;
 

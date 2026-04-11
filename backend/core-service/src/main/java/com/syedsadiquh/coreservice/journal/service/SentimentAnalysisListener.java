@@ -70,7 +70,7 @@ public class SentimentAnalysisListener {
 
                 if (attempt < MAX_RETRIES) {
                     try {
-                        long delay = RETRY_DELAY_MS * (long) Math.pow(2, attempt - 1);
+                        long delay = RETRY_DELAY_MS * (long) Math.pow(2, attempt - 1.0); // Exponential backoff
                         Thread.sleep(delay);
                     } catch (InterruptedException ie) {
                         Thread.currentThread().interrupt();
@@ -84,31 +84,42 @@ public class SentimentAnalysisListener {
 
     @Transactional("journalTransactionManager")
     protected void updateSentiment(UUID blockId, SentimentResponse response) {
-        blockRepository.findById(blockId).ifPresent(block -> {
-            SentimentAnalysis analysis = sentimentAnalysisRepository.findByBlockId(blockId)
-                    .orElseGet(() -> SentimentAnalysis.builder()
-                            .block(block)
-                            .analysedBy("SYSTEM")
-                            .createdAt(LocalDateTime.now())
-                            .deleted(false)
-                            .build());
+        try {
+            blockRepository.findById(blockId).ifPresent(block -> {
+                SentimentAnalysis analysis = sentimentAnalysisRepository.findByBlockId(blockId)
+                        .orElseGet(() -> SentimentAnalysis.builder()
+                                .block(block)
+                                .analysedBy("SYSTEM")
+                                .createdAt(LocalDateTime.now())
+                                .deleted(false)
+                                .build());
 
-            analysis.setSentimentLabel(response.getSentiment() != null
-                    ? response.getSentiment().toUpperCase() : "NEUTRAL");
+                analysis.setSentimentLabel(response.getSentiment() != null
+                        ? response.getSentiment().toUpperCase() : "NEUTRAL");
 
-            // Normalise ML score from [0, 1] → [-1, +1] for consistent storage.
-            // If the ML service already returns [-1, +1], this formula is idempotent
-            // for the midpoint (0.5 → 0.0) and preserves polarity.
-            float rawScore = (float) response.getScore();
-            float normalisedScore = (rawScore * 2) - 1;
-            analysis.setSentimentScore(normalisedScore);
+                // Normalise ML score from [0, 1] → [-1, +1] for consistent storage.
+                // If the ML service already returns [-1, +1], this formula is idempotent
+                // for the midpoint (0.5 → 0.0) and preserves polarity.
+                float rawScore = (float) response.getScore();
+                float normalisedScore;
+                if (rawScore > 0 && rawScore < 1) {
+                    normalisedScore = (rawScore * 2) - 1;
+                } else if (rawScore <= 0) {
+                    normalisedScore = -1f; // Treat as fully negative
+                } else {
+                    normalisedScore = 1f; // Treat as fully positive
+                }
+                analysis.setSentimentScore(normalisedScore);
 
-            analysis.setAnalysedAt(LocalDateTime.now());
-            analysis.setUpdatedAt(LocalDateTime.now());
+                analysis.setAnalysedAt(LocalDateTime.now());
+                analysis.setUpdatedAt(LocalDateTime.now());
 
-            sentimentAnalysisRepository.save(analysis);
-            log.info("Sentiment updated for block: {} — {} ({})",
-                    blockId, analysis.getSentimentLabel(), analysis.getSentimentScore());
-        });
+                sentimentAnalysisRepository.save(analysis);
+                log.info("Sentiment updated for block: {} — {} ({})",
+                        blockId, analysis.getSentimentLabel(), analysis.getSentimentScore());
+            });
+        } catch (Exception e) {
+            log.error("Failed to update sentiment for block: {} — {}", blockId, e.getMessage(), e);
+        }
     }
 }

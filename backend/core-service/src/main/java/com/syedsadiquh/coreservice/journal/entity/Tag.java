@@ -16,11 +16,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @SuperBuilder
 @Entity
-@Table(name = "tags", uniqueConstraints = {
-        @UniqueConstraint(name = "uk_tag_tenant_name", columnNames = {"tenantId", "name"})
-}, indexes = {
+@Table(name = "tags", indexes = {
         @Index(name = "idx_tag_tenant_id", columnList = "tenantId")
 })
+/* NOTE: -
+  Unique constraint is to be maintained by the application layer to allow the same tag names across different tenants,
+  This is to prevent error on recreating new tags with same name after soft deletion of old tags.
+  The application layer should check for existing active tags with the same name before creating a new tag.
+ */
 public class Tag extends BaseEntity {
 
     @Column(nullable = false)

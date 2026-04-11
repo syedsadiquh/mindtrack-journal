@@ -1,5 +1,7 @@
 package com.syedsadiquh.coreservice.infrastructure.config;
 
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -20,18 +22,22 @@ import java.util.stream.Collectors;
 
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
+@Setter
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@ConfigurationProperties(prefix = "security")
 public class SecurityConfig {
 
+    private String[] publicEndpoints;
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/api/v1/auth/login", "/api/v1/auth/register", "/api/v1/auth/refresh-token").permitAll()
+                        .requestMatchers(publicEndpoints).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))

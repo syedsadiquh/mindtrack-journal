@@ -7,6 +7,7 @@ import com.syedsadiquh.coreservice.journal.dto.response.*;
 import com.syedsadiquh.coreservice.journal.entity.*;
 import com.syedsadiquh.coreservice.journal.event.BlockCreatedEvent;
 import com.syedsadiquh.coreservice.journal.exception.JournalException;
+import com.syedsadiquh.coreservice.journal.exception.JournalNotFoundException;
 import com.syedsadiquh.coreservice.journal.repository.JournalBlockRepository;
 import com.syedsadiquh.coreservice.journal.repository.JournalPageRepository;
 import com.syedsadiquh.coreservice.journal.repository.TagRepository;
@@ -37,57 +38,62 @@ public class JournalPageServiceImpl implements JournalPageService {
     @Transactional("journalTransactionManager")
     @Override
     public JournalPageDetailResponse createPage(UUID userId, CreateJournalPageRequest request) {
-        JournalPage page = JournalPage.builder()
-                .tenantId(request.getTenantId())
-                .userId(userId)
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .coverImageUrl(request.getCoverImageUrl())
-                .entryDate(request.getEntryDate())
-                .isPrivate(request.getIsPrivate() != null ? request.getIsPrivate() : true)
-                .createdBy(userId.toString())
-                .createdAt(LocalDateTime.now())
-                .deleted(false)
-                .build();
+        try {
+            JournalPage page = JournalPage.builder()
+                    .tenantId(request.getTenantId())
+                    .userId(userId)
+                    .title(request.getTitle())
+                    .description(request.getDescription())
+                    .coverImageUrl(request.getCoverImageUrl())
+                    .entryDate(request.getEntryDate())
+                    .isPrivate(request.getIsPrivate() != null ? request.getIsPrivate() : true)
+                    .createdBy(userId.toString())
+                    .createdAt(LocalDateTime.now())
+                    .deleted(false)
+                    .build();
 
-        if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
-            Set<Tag> tags = new HashSet<>(tagRepository.findAllById(request.getTagIds()));
-            page.setTags(tags);
-        }
-
-        JournalPage saved = pageRepository.save(page);
-
-        if (request.getBlocks() != null && !request.getBlocks().isEmpty()) {
-            List<JournalBlock> blocks = new ArrayList<>();
-            for (int i = 0; i < request.getBlocks().size(); i++) {
-                CreateBlockRequest blockReq = request.getBlocks().get(i);
-
-                Map<String, Object> safeContent = sanitizerUtil.sanitizeMap(blockReq.getContent());
-                Map<String, Object> safeMetadata = sanitizerUtil.sanitizeMap(blockReq.getMetadata());
-
-                JournalBlock block = JournalBlock.builder()
-                        .tenantId(request.getTenantId())
-                        .page(saved)
-                        .type(blockReq.getType())
-                        .orderIndex(blockReq.getOrderIndex() != null ? blockReq.getOrderIndex() : i)
-                        .content(safeContent)
-                        .metadata(safeMetadata)
-                        .createdBy(userId.toString())
-                        .createdAt(LocalDateTime.now())
-                        .deleted(false)
-                        .build();
-                blocks.add(block);
+            if (request.getTagIds() != null && !request.getTagIds().isEmpty()) {
+                Set<Tag> tags = new HashSet<>(tagRepository.findAllById(request.getTagIds()));
+                page.setTags(tags);
             }
-            List<JournalBlock> savedBlocks = blockRepository.saveAll(blocks);
-            saved.setBlocks(savedBlocks);
 
-            for (JournalBlock block : savedBlocks) {
-                publishBlockEventIfText(block);
+            JournalPage saved = pageRepository.save(page);
+
+            if (request.getBlocks() != null && !request.getBlocks().isEmpty()) {
+                List<JournalBlock> blocks = new ArrayList<>();
+                for (int i = 0; i < request.getBlocks().size(); i++) {
+                    CreateBlockRequest blockReq = request.getBlocks().get(i);
+
+                    Map<String, Object> safeContent = sanitizerUtil.sanitizeMap(blockReq.getContent());
+                    Map<String, Object> safeMetadata = sanitizerUtil.sanitizeMap(blockReq.getMetadata());
+
+                    JournalBlock block = JournalBlock.builder()
+                            .tenantId(request.getTenantId())
+                            .page(saved)
+                            .type(blockReq.getType())
+                            .orderIndex(blockReq.getOrderIndex() != null ? blockReq.getOrderIndex() : i)
+                            .content(safeContent)
+                            .metadata(safeMetadata)
+                            .createdBy(userId.toString())
+                            .createdAt(LocalDateTime.now())
+                            .deleted(false)
+                            .build();
+                    blocks.add(block);
+                }
+                List<JournalBlock> savedBlocks = blockRepository.saveAll(blocks);
+                saved.setBlocks(savedBlocks);
+
+                for (JournalBlock block : savedBlocks) {
+                    publishBlockEventIfText(block);
+                }
             }
-        }
 
-        log.info("Journal page created: {} for user: {} on date: {}", saved.getId(), userId, saved.getEntryDate());
-        return toDetailResponse(saved);
+            log.info("Journal page created: {} for user: {} on date: {}", saved.getId(), userId, saved.getEntryDate());
+            return toDetailResponse(saved);
+        } catch (Exception e) {
+            log.error("Error creating journal page for user: {} - {}", userId, e.getMessage(), e);
+            throw new JournalException("Something went wrong. Failed to create journal page. Please try again.");
+        }
     }
 
     @Override
@@ -96,9 +102,14 @@ public class JournalPageServiceImpl implements JournalPageService {
             readOnly = true
     )
     public JournalPageDetailResponse getPage(UUID userId, UUID pageId) {
-        JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
-                .orElseThrow(() -> new JournalException("Journal page not found: " + pageId));
-        return toDetailResponse(page);
+        try {
+            JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
+                    .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
+            return toDetailResponse(page);
+        } catch (Exception e) {
+            log.error("Error getting journal page for user: {} - {}", userId, e.getMessage(), e);
+            throw new JournalException("Something went wrong. Failed to get journal page. Please try again.");
+        }
     }
 
     @Override
@@ -107,8 +118,13 @@ public class JournalPageServiceImpl implements JournalPageService {
             readOnly = true
     )
     public Page<JournalPageResponse> getUserPages(UUID userId, Pageable pageable) {
-        return pageRepository.findByUserIdAndDeletedFalse(userId, pageable)
-                .map(this::toListResponse);
+        try {
+            return pageRepository.findByUserIdAndDeletedFalse(userId, pageable)
+                    .map(this::toListResponse);
+        } catch (Exception e) {
+            log.error("Error getting journal pages for user: {} - {}", userId, e.getMessage(), e);
+            throw new JournalException("Something went wrong. Failed to get journal pages. Please try again.");
+        }
     }
 
     @Override
@@ -117,49 +133,72 @@ public class JournalPageServiceImpl implements JournalPageService {
             readOnly = true
     )
     public Page<JournalPageResponse> getUserPagesByDateRange(UUID userId, LocalDate from, LocalDate to, Pageable pageable) {
-        return pageRepository.findByUserIdAndEntryDateBetweenAndDeletedFalse(userId, from, to, pageable)
-                .map(this::toListResponse);
+        try {
+            return pageRepository.findByUserIdAndEntryDateBetweenAndDeletedFalse(userId, from, to, pageable)
+                    .map(this::toListResponse);
+        } catch (Exception e) {
+            log.error("Error getting journal pages for user: {} - {}", userId, e.getMessage(), e);
+            throw new JournalException("Something went wrong. Failed to get journal pages. Please try again.");
+        }
     }
 
     @Transactional("journalTransactionManager")
     @Override
     public JournalPageDetailResponse updatePage(UUID userId, UUID pageId, UpdateJournalPageRequest request) {
-        JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
-                .orElseThrow(() -> new JournalException("Journal page not found: " + pageId));
+        try {
+            JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
+                    .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
 
-        if (request.getTitle() != null) page.setTitle(request.getTitle());
-        if (request.getDescription() != null) page.setDescription(request.getDescription());
-        if (request.getCoverImageUrl() != null) page.setCoverImageUrl(request.getCoverImageUrl());
-        if (request.getIsPrivate() != null) page.setIsPrivate(request.getIsPrivate());
+            if (request.getTitle() != null) page.setTitle(request.getTitle());
+            if (request.getDescription() != null) page.setDescription(request.getDescription());
+            if (request.getCoverImageUrl() != null) page.setCoverImageUrl(request.getCoverImageUrl());
+            if (request.getIsPrivate() != null) page.setIsPrivate(request.getIsPrivate());
 
-        page.setUpdatedBy(userId.toString());
-        page.setUpdatedAt(LocalDateTime.now());
+            page.setUpdatedBy(userId.toString());
+            page.setUpdatedAt(LocalDateTime.now());
 
-        JournalPage updated = pageRepository.save(page);
-        return toDetailResponse(updated);
+            JournalPage updated = pageRepository.save(page);
+            log.info("Journal page updated: {} for user: {} on date: {}", updated.getId(), userId, updated.getEntryDate());
+            return toDetailResponse(updated);
+        } catch (Exception e) {
+            log.error("Error updating journal page for user: {} - {}", userId, e.getMessage(), e);
+            throw new JournalException("Something went wrong. Failed to update journal page. Please try again.");
+        }
     }
 
     @Transactional("journalTransactionManager")
     @Override
     public void addTagToPage(UUID userId, UUID pageId, UUID tagId) {
-        JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
-                .orElseThrow(() -> new JournalException("Journal page not found: " + pageId));
+        try {
+            JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
+                    .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
 
-        Tag tag = tagRepository.findById(tagId)
-                .orElseThrow(() -> new JournalException("Tag not found: " + tagId));
+            Tag tag = tagRepository.findById(tagId)
+                    .orElseThrow(() -> new JournalNotFoundException("Tag not found: " + tagId));
 
-        page.getTags().add(tag);
-        pageRepository.save(page);
+            page.getTags().add(tag);
+            pageRepository.save(page);
+            log.info("Tag added to journal page: {} for user: {} on date: {}", tagId, userId, page.getEntryDate());
+        } catch (Exception e) {
+            log.error("Error adding tag to journal page for user: {} - {}", userId, e.getMessage(), e);
+            throw new JournalException("Something went wrong. Failed to add tag to journal page. Please try again.");
+        }
     }
 
     @Transactional("journalTransactionManager")
     @Override
     public void removeTagFromPage(UUID userId, UUID pageId, UUID tagId) {
-        JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
-                .orElseThrow(() -> new JournalException("Journal page not found: " + pageId));
+        try {
+            JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
+                    .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
 
-        page.getTags().removeIf(tag -> tag.getId().equals(tagId));
-        pageRepository.save(page);
+            page.getTags().removeIf(tag -> tag.getId().equals(tagId));
+            pageRepository.save(page);
+            log.info("Tag removed from journal page: {} for user: {} on date: {}", tagId, userId, page.getEntryDate());
+        } catch (Exception e) {
+            log.error("Error removing tag from journal page for user: {} - {}", userId, e.getMessage(), e);
+            throw new JournalException("Something went wrong. Failed to remove tag from journal page. Please try again.");
+        }
     }
 
     private void publishBlockEventIfText(JournalBlock block) {

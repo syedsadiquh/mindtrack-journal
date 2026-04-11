@@ -11,7 +11,7 @@ public interface TagService {
 
     TagResponse createTag(UUID userId, CreateTagRequest request);
 
-    List<TagResponse> getTagsByTenant(UUID tenantId);
+    List<TagResponse> getTagsByTenant(UUID userId, UUID tenantId);
 
     TagResponse updateTag(UUID userId, UUID tagId, UUID tenantId, UpdateTagRequest request);
 

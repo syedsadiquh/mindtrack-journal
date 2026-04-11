@@ -36,9 +36,10 @@ public class TagController {
 
     @GetMapping
     public ResponseEntity<BaseResponse<List<TagResponse>>> getTags(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam UUID tenantId) {
-
-        List<TagResponse> tags = tagService.getTagsByTenant(tenantId);
+        UUID userId = UUID.fromString(jwt.getSubject());
+        List<TagResponse> tags = tagService.getTagsByTenant(userId, tenantId);
         return ResponseEntity.ok(new BaseResponse<>(true, "Tags retrieved", tags));
     }
 

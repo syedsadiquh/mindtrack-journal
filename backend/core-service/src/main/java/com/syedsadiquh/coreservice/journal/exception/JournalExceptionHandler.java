@@ -12,10 +12,19 @@ public class JournalExceptionHandler {
 
     @ExceptionHandler(JournalException.class)
     public ResponseEntity<BaseResponse<String>> handleJournalException(JournalException ex) {
-        HttpStatus status = ex.getMessage().contains("not found")
-                ? HttpStatus.NOT_FOUND
-                : HttpStatus.BAD_REQUEST;
-        return ResponseEntity.status(status)
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new BaseResponse<>(false, ex.getMessage()));
+    }
+
+    @ExceptionHandler(JournalNotFoundException.class)
+    public ResponseEntity<BaseResponse<String>> handleJournalNotFoundException(JournalNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new BaseResponse<>(false, ex.getMessage()));
+    }
+
+    @ExceptionHandler(JournalBadRequestException.class)
+    public ResponseEntity<BaseResponse<String>> handleJournalBadRequestException(JournalBadRequestException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new BaseResponse<>(false, ex.getMessage()));
     }
 
@@ -27,5 +36,17 @@ public class JournalExceptionHandler {
                 .orElse("Validation failed");
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new BaseResponse<>(false, message));
+    }
+
+    @ExceptionHandler(TagAlreadyExistsException.class)
+    public ResponseEntity<BaseResponse<String>> handleTagAlreadyExistsException(TagAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(new BaseResponse<>(false, ex.getMessage()));
+    }
+
+    @ExceptionHandler(TenantAccessDeniedException.class)
+    public ResponseEntity<BaseResponse<String>> handleTenantAccessDeniedException(TenantAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new BaseResponse<>(false, ex.getMessage()));
     }
 }
