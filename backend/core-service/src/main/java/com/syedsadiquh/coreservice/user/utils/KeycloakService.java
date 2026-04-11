@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.syedsadiquh.coreservice.user.dto.request.LoginRequestDto;
 import com.syedsadiquh.coreservice.user.dto.request.RegisterRequestDto;
 import com.syedsadiquh.coreservice.user.dto.response.TokenResponse;
+import com.syedsadiquh.coreservice.user.enums.SystemRole;
 import com.syedsadiquh.coreservice.user.exception.UserException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +20,7 @@ import org.springframework.web.client.RestClient;
 import java.net.URI;
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class KeycloakService {
@@ -89,7 +92,17 @@ public class KeycloakService {
         }
 
         String path = location.getPath();
-        return path.substring(path.lastIndexOf('/') + 1);
+        String userId = path.substring(path.lastIndexOf('/') + 1);
+
+        // Assign the default USER system role in Keycloak
+        try {
+            assignRole(request.getUsername(), SystemRole.ROLE_USER, adminToken);
+        } catch (Exception e) {
+            log.warn("Failed to assign USER role to {}. They may need manual role assignment. Error: {}",
+                    request.getUsername(), e.getMessage());
+        }
+
+        return userId;
     }
 
     private void assignRole(String username, String roleName, String adminToken) {

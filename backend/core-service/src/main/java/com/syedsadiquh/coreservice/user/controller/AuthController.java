@@ -1,6 +1,7 @@
 package com.syedsadiquh.coreservice.user.controller;
 
 import com.syedsadiquh.coreservice.shared.dto.BaseResponse;
+import com.syedsadiquh.coreservice.user.enums.SystemRole;
 import com.syedsadiquh.coreservice.user.dto.request.LoginRequestDto;
 import com.syedsadiquh.coreservice.user.dto.request.RefreshTokenRequest;
 import com.syedsadiquh.coreservice.user.dto.request.RegisterRequestDto;
@@ -10,6 +11,7 @@ import com.syedsadiquh.coreservice.user.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -33,6 +35,7 @@ public class AuthController {
     }
 
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize(SystemRole.HAS_ROLE_ADMIN_OR_SYS_ADMIN)
     public ResponseEntity<BaseResponse<String>> deleteUser(@PathVariable String id) {
         authService.deleteUser(id);
         return ResponseEntity.ok(new BaseResponse<>("User Deleted Successfully"));

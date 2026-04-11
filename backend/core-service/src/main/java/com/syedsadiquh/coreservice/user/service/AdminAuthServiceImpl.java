@@ -2,13 +2,11 @@ package com.syedsadiquh.coreservice.user.service;
 
 import com.syedsadiquh.coreservice.shared.dto.BaseResponse;
 import com.syedsadiquh.coreservice.user.dto.request.AdminRegisterRequestDto;
-import com.syedsadiquh.coreservice.user.entity.Tenant;
-import com.syedsadiquh.coreservice.user.entity.TenantMember;
-import com.syedsadiquh.coreservice.user.entity.TenantMemberId;
-import com.syedsadiquh.coreservice.user.entity.User;
+import com.syedsadiquh.coreservice.user.entity.*;
 import com.syedsadiquh.coreservice.user.enums.PlanTier;
-import com.syedsadiquh.coreservice.user.enums.Role;
+import com.syedsadiquh.coreservice.user.enums.TenantRole;
 import com.syedsadiquh.coreservice.user.exception.UserException;
+import com.syedsadiquh.coreservice.user.repository.PlanRepository;
 import com.syedsadiquh.coreservice.user.repository.TenantMemberRepository;
 import com.syedsadiquh.coreservice.user.repository.TenantRepository;
 import com.syedsadiquh.coreservice.user.repository.UserRepository;
@@ -28,6 +26,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
     private final KeycloakService keycloakService;
     private final SlugService slugService;
+    private final PlanRepository planRepository;
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final TenantMemberRepository tenantMemberRepository;
@@ -39,10 +38,13 @@ public class AdminAuthServiceImpl implements AdminAuthService {
             keycloakId = keycloakService.createKeycloakUser(request);
             UUID userId = UUID.fromString(keycloakId);
 
+            Plan freePlan = planRepository.findByTier(PlanTier.FREE)
+                    .orElseThrow(() -> new UserException("FREE plan not found."));
+
             Tenant personalTenant = Tenant.builder()
                     .name(request.getFirstName() + "'s Workspace")
                     .slug(slugService.generateUniqueTenantSlug(request.getFirstName() + " Workspace"))
-                    .planTier(PlanTier.FREE)
+                    .plan(freePlan)
                     .active(true)
                     .createdBy("SYSTEM")
                     .createdAt(LocalDateTime.now())
@@ -53,7 +55,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                     .id(userId)
                     .defaultTenant(savedTenant)
                     .username(request.getUsername())
-                    .name(request.getFirstName() + " " + request.getLastName())
+                    .fullName(request.getFirstName() + " " + request.getLastName())
                     .email(request.getEmail())
                     .active(true)
                     .createdBy("SYSTEM")
@@ -66,7 +68,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                     .id(tenantMemberId)
                     .tenant(savedTenant)
                     .user(savedUser)
-                    .role(Role.OWNER)
+                    .role(TenantRole.OWNER)
                     .createdBy("SYSTEM")
                     .createdAt(LocalDateTime.now())
                     .build();
@@ -88,4 +90,3 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         }
     }
 }
-

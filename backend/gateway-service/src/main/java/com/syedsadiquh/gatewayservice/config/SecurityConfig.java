@@ -1,5 +1,7 @@
 package com.syedsadiquh.gatewayservice.config;
 
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -8,9 +10,13 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.security.web.server.context.NoOpServerSecurityContextRepository;
 
+@Setter
 @Configuration
 @EnableWebFluxSecurity
+@ConfigurationProperties(prefix = "security")
 public class SecurityConfig {
+
+    private String[] publicEndpoints;
 
     @Bean
     public SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
@@ -22,12 +28,10 @@ public class SecurityConfig {
                 .logout(ServerHttpSecurity.LogoutSpec::disable)
                 .securityContextRepository(NoOpServerSecurityContextRepository.getInstance())
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers("/actuator/health/**", "/actuator/info")
-                        .permitAll()
-                        .pathMatchers("/api/v1/auth/**", "/api/v1/admin/auth/**")
-                        .permitAll()
-                        .anyExchange()
-                        .authenticated())
+                        .pathMatchers("/actuator/**").permitAll()
+                        .pathMatchers(publicEndpoints).permitAll()
+                        .anyExchange().authenticated()
+                )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
     }

@@ -33,14 +33,15 @@ public class UserServiceImpl implements UserService {
             UserDetailsResponseDto responseDto = UserDetailsResponseDto.builder()
                     .id(user.getId())
                     .username(user.getUsername())
-                    .name(user.getName())
+                    .fullName(user.getFullName())
                     .email(user.getEmail())
                     .defaultTenant(
                             TenantResponseDto.builder()
                                     .tenantId(user.getDefaultTenant().getId())
                                     .tenantName(user.getDefaultTenant().getName())
                                     .tenantSlug(user.getDefaultTenant().getSlug())
-                                    .planTier(user.getDefaultTenant().getPlanTier())
+                                    .planTier(user.getDefaultTenant().getPlan().getTier())
+                                    .planDisplayName(user.getDefaultTenant().getPlan().getDisplayName())
                                     .active(user.getDefaultTenant().getActive())
                                     .build()
                     )
@@ -70,7 +71,7 @@ public class UserServiceImpl implements UserService {
                     .orElseThrow(() -> new UserException("User not found"));
 
             // Update fields
-            if (updateUserRequestDto.getName() != null) user.setName(updateUserRequestDto.getName());
+            if (updateUserRequestDto.getFullName() != null) user.setFullName(updateUserRequestDto.getFullName());
             if (updateUserRequestDto.getUsername() != null) {
                 User existingUser = userRepository.findByUsername(updateUserRequestDto.getUsername()).orElse(null);
                 if (existingUser != null && !existingUser.getId().equals(uuid)) {
@@ -103,14 +104,15 @@ public class UserServiceImpl implements UserService {
             UserDetailsResponseDto responseDto = UserDetailsResponseDto.builder()
                     .id(updatedUser.getId())
                     .username(updatedUser.getUsername())
-                    .name(updatedUser.getName())
+                    .fullName(updatedUser.getFullName())
                     .email(updatedUser.getEmail())
                     .defaultTenant(
                             TenantResponseDto.builder()
                                     .tenantId(updatedUser.getDefaultTenant().getId())
                                     .tenantName(updatedUser.getDefaultTenant().getName())
                                     .tenantSlug(updatedUser.getDefaultTenant().getSlug())
-                                    .planTier(updatedUser.getDefaultTenant().getPlanTier())
+                                    .planTier(updatedUser.getDefaultTenant().getPlan().getTier())
+                                    .planDisplayName(updatedUser.getDefaultTenant().getPlan().getDisplayName())
                                     .active(updatedUser.getDefaultTenant().getActive())
                                     .build()
                     )

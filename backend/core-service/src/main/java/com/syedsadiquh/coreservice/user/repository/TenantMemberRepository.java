@@ -9,5 +9,7 @@ import java.util.UUID;
 
 public interface TenantMemberRepository extends JpaRepository<TenantMember, TenantMemberId> {
     List<TenantMember> findByUserId(UUID userId);
+
+    boolean existsByIdTenantIdAndIdUserId(UUID tenantId, UUID userId);
 }
 

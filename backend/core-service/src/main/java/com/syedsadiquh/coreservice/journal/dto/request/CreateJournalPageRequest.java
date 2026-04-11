@@ -1,19 +1,20 @@
 package com.syedsadiquh.coreservice.journal.dto.request;
 
-import com.syedsadiquh.coreservice.journal.enums.Mood;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class CreateJournalEntryRequest {
+public class CreateJournalPageRequest {
 
     @NotNull
     private UUID tenantId;
@@ -21,11 +22,17 @@ public class CreateJournalEntryRequest {
     @NotEmpty
     private String title;
 
-    @NotEmpty
-    private String content;
+    private String description;
 
-    private List<String> tags;
+    private String coverImageUrl;
 
-    private Mood mood;
+    @NotNull
+    private LocalDate entryDate;
+
+    private Boolean isPrivate = true;
+
+    @Valid
+    private List<CreateBlockRequest> blocks;
+
+    private List<UUID> tagIds;
 }
-

@@ -6,14 +6,13 @@ import com.syedsadiquh.coreservice.user.dto.request.LoginRequestDto;
 import com.syedsadiquh.coreservice.user.dto.request.RegisterRequestDto;
 import com.syedsadiquh.coreservice.user.dto.response.TokenResponse;
 import com.syedsadiquh.coreservice.user.dto.response.UserRegisterResponseDto;
-import com.syedsadiquh.coreservice.user.entity.Tenant;
-import com.syedsadiquh.coreservice.user.entity.TenantMember;
-import com.syedsadiquh.coreservice.user.entity.TenantMemberId;
-import com.syedsadiquh.coreservice.user.entity.User;
+import com.syedsadiquh.coreservice.user.entity.*;
 import com.syedsadiquh.coreservice.user.enums.PlanTier;
-import com.syedsadiquh.coreservice.user.enums.Role;
+import com.syedsadiquh.coreservice.user.enums.SystemRole;
+import com.syedsadiquh.coreservice.user.enums.TenantRole;
 import com.syedsadiquh.coreservice.user.exception.UserException;
 import com.syedsadiquh.coreservice.user.kafka.producer.NotificationProducerService;
+import com.syedsadiquh.coreservice.user.repository.PlanRepository;
 import com.syedsadiquh.coreservice.user.repository.TenantMemberRepository;
 import com.syedsadiquh.coreservice.user.repository.TenantRepository;
 import com.syedsadiquh.coreservice.user.repository.UserRepository;
@@ -40,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final KeycloakService keycloakService;
     private final SlugService slugService;
+    private final PlanRepository planRepository;
     private final TenantRepository tenantRepository;
     private final UserRepository userRepository;
     private final TenantMemberRepository tenantMemberRepository;
@@ -78,6 +78,11 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    private Plan getFreePlan() {
+        return planRepository.findByTier(PlanTier.FREE)
+                .orElseThrow(() -> new UserException("FREE plan not found. Ensure PlanDataSeeder has run."));
+    }
+
     private User syncLocalUserFromToken(String email, String jwtToken) throws ParseException {
         SignedJWT parsedToken = SignedJWT.parse(jwtToken);
         String keycloakId = parsedToken.getJWTClaimsSet().getSubject();
@@ -90,7 +95,7 @@ public class AuthServiceImpl implements AuthService {
         Tenant personalTenant = Tenant.builder()
                 .name(baseName)
                 .slug(slug)
-                .planTier(PlanTier.FREE)
+                .plan(getFreePlan())
                 .active(true)
                 .createdBy("SYSTEM")
                 .createdAt(LocalDateTime.now())
@@ -101,7 +106,7 @@ public class AuthServiceImpl implements AuthService {
                 .id(UUID.fromString(keycloakId))
                 .email(email)
                 .username(email)
-                .name(firstName + " " + lastName)
+                .fullName(firstName + " " + lastName)
                 .defaultTenant(personalTenant)
                 .active(true)
                 .createdBy("SYSTEM")
@@ -113,7 +118,7 @@ public class AuthServiceImpl implements AuthService {
                 .id(new TenantMemberId(personalTenant.getId(), newUser.getId()))
                 .tenant(personalTenant)
                 .user(newUser)
-                .role(Role.OWNER)
+                .role(TenantRole.OWNER)
                 .createdBy("SYSTEM")
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -135,7 +140,7 @@ public class AuthServiceImpl implements AuthService {
             List<String> roles = (List<String>) realmAccess.get("roles");
             if (roles == null) return false;
 
-            return roles.contains("SYS_ADMIN");
+            return roles.contains(SystemRole.ROLE_SYS_ADMIN);
         } catch (ParseException e) {
             log.error("Failed to parse JWT for role check", e);
             return false;
@@ -154,7 +159,7 @@ public class AuthServiceImpl implements AuthService {
             Tenant personalTenant = Tenant.builder()
                     .name(request.getFirstName() + "'s Workspace")
                     .slug(slugService.generateUniqueTenantSlug(request.getFirstName() + " Workspace"))
-                    .planTier(PlanTier.FREE)
+                    .plan(getFreePlan())
                     .active(true)
                     .createdBy("SYSTEM")
                     .createdAt(LocalDateTime.now())
@@ -165,7 +170,7 @@ public class AuthServiceImpl implements AuthService {
                     .id(userId)
                     .defaultTenant(savedTenant)
                     .username(request.getUsername())
-                    .name(request.getFirstName() + " " + request.getLastName())
+                    .fullName(request.getFirstName() + " " + request.getLastName())
                     .email(request.getEmail())
                     .active(true)
                     .createdBy("USER")
@@ -178,7 +183,7 @@ public class AuthServiceImpl implements AuthService {
                     .id(tenantMemberId)
                     .tenant(savedTenant)
                     .user(savedUser)
-                    .role(Role.OWNER)
+                    .role(TenantRole.OWNER)
                     .createdBy("SYSTEM")
                     .createdAt(LocalDateTime.now())
                     .build();
@@ -192,7 +197,7 @@ public class AuthServiceImpl implements AuthService {
 
             CompletableFuture.runAsync(() -> {
                 log.info("Handling onboarding mail request for: {} ", user.getEmail());
-                notificationProducerService.sendOnboardingEmail(user.getEmail(), user.getName());
+                notificationProducerService.sendOnboardingEmail(user.getEmail(), user.getFullName());
             }, virtualExecutor);
 
             return new BaseResponse<>(true, "User Registered Successfully", responseDto);
@@ -225,7 +230,7 @@ public class AuthServiceImpl implements AuthService {
             List<TenantMember> memberships = tenantMemberRepository.findByUserId(userId);
 
             List<Tenant> ownerTenants = memberships.stream()
-                    .filter(tm -> tm.getRole() == Role.OWNER)
+                    .filter(tm -> tm.getRole() == TenantRole.OWNER)
                     .map(TenantMember::getTenant)
                     .toList();
 

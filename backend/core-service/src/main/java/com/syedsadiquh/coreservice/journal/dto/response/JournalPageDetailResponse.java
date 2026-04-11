@@ -1,12 +1,12 @@
 package com.syedsadiquh.coreservice.journal.dto.response;
 
-import com.syedsadiquh.coreservice.journal.enums.Mood;
-import com.syedsadiquh.coreservice.journal.enums.SentimentLabel;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -15,17 +15,19 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class JournalEntryResponse {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class JournalPageDetailResponse {
     private UUID id;
-    private UUID userId;
     private UUID tenantId;
+    private UUID userId;
     private String title;
-    private String content;
-    private List<String> tags;
-    private Mood mood;
-    private Double sentimentScore;
-    private SentimentLabel sentimentLabel;
+    private String description;
+    private String coverImageUrl;
+    private LocalDate entryDate;
+    private Boolean isPrivate;
+    private List<TagResponse> tags;
+    private List<JournalBlockResponse> blocks;
+    private AiEnrichmentResponse aiEnrichment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }
-

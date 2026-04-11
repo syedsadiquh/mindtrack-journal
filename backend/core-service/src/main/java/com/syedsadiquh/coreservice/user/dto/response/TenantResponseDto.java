@@ -13,7 +13,8 @@ import java.util.UUID;
 public class TenantResponseDto {
     private UUID tenantId;
     private String tenantName;
-    private PlanTier planTier;
     private String tenantSlug;
+    private PlanTier planTier;
+    private String planDisplayName;
     private Boolean active;
 }
