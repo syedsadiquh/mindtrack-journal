@@ -21,13 +21,13 @@ import java.util.Map;
 @SuperBuilder
 @Entity
 @Table(name = "sentiment_analysis", indexes = {
-        @Index(name = "idx_sentiment_block_id", columnList = "block_id")
+        @Index(name = "idx_sentiment_page_id", columnList = "page_id")
 })
 public class SentimentAnalysis extends BaseEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "block_id", nullable = false, unique = true)
-    private JournalBlock block;
+    @JoinColumn(name = "page_id", nullable = false, unique = true)
+    private JournalPage page;
 
     @Column(name = "analysed_at")
     private LocalDateTime analysedAt;
@@ -39,21 +39,34 @@ public class SentimentAnalysis extends BaseEntity {
     private String sentimentLabel;
 
     /**
-     * Sentiment score in the range [-1.0, +1.0].
+     * Sentiment score in the range [-1.0, +1.0], computed as
+     * {@code clamp(POSITIVE_score - NEGATIVE_score, -1.0, +1.0)}.
      * <ul>
      *   <li>-1.0 = strongly negative</li>
      *   <li> 0.0 = neutral</li>
      *   <li>+1.0 = strongly positive</li>
      * </ul>
-     * If the ML service returns [0, 1], the listener normalises to [-1, +1]
-     * via: {@code normalisedScore = (rawScore * 2) - 1}.
      */
     @Column(name = "sentiment_score")
     private Float sentimentScore;
 
     /**
+     * Full sentiment score breakdown — e.g. {"POSITIVE": 0.85, "NEGATIVE": 0.05, "NEUTRAL": 0.10}.
+     * All values in [0.0, 1.0]; they sum to ~1.0.
+     */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "sentiment_scores", columnDefinition = "jsonb")
+    private Map<String, Double> sentimentScores;
+
+    /**
+     * The dominant emotion detected — e.g. "joy", "sadness", "anger".
+     */
+    @Column(name = "dominant_emotion", length = 30)
+    private String dominantEmotion;
+
+    /**
      * Granular emotion breakdown — e.g. {"joy": 0.7, "sadness": 0.1, "anger": 0.05}.
-     * All values in [0.0, 1.0]; they need not sum to 1.
+     * All values in [0.0, 1.0]; they sum to ~1.0.
      */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "emotion_vector", columnDefinition = "jsonb")

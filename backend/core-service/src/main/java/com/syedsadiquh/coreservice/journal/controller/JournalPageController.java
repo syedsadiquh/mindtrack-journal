@@ -4,6 +4,7 @@ import com.syedsadiquh.coreservice.journal.dto.request.CreateJournalPageRequest;
 import com.syedsadiquh.coreservice.journal.dto.request.UpdateJournalPageRequest;
 import com.syedsadiquh.coreservice.journal.dto.response.JournalPageDetailResponse;
 import com.syedsadiquh.coreservice.journal.dto.response.JournalPageResponse;
+import com.syedsadiquh.coreservice.journal.dto.response.SentimentAnalysisResponse;
 import com.syedsadiquh.coreservice.journal.service.JournalPageService;
 import com.syedsadiquh.coreservice.shared.dto.BaseResponse;
 import jakarta.validation.Valid;
@@ -99,5 +100,15 @@ public class JournalPageController {
         UUID userId = UUID.fromString(jwt.getSubject());
         journalPageService.removeTagFromPage(userId, pageId, tagId);
         return ResponseEntity.ok(new BaseResponse<>(true, "Tag removed from page"));
+    }
+
+    @PostMapping("/{pageId}/analyze")
+    public ResponseEntity<BaseResponse<SentimentAnalysisResponse>> analyzePage(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID pageId) {
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+        SentimentAnalysisResponse result = journalPageService.analyzePage(userId, pageId);
+        return ResponseEntity.ok(new BaseResponse<>(true, "Page analyzed", result));
     }
 }

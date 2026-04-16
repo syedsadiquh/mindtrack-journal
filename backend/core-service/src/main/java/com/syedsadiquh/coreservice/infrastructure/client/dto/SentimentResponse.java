@@ -5,15 +5,27 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class SentimentResponse {
-    @JsonProperty("entry_id")
-    private String entryId;
+    @JsonProperty("page_id")
+    private String pageId;
 
-    private String sentiment;
+    @JsonProperty("sentiment_label")
+    private String sentimentLabel;
 
-    private double score;
+    @JsonProperty("sentiment_scores")
+    private Map<String, Double> sentimentScores;
+
+    @JsonProperty("dominant_emotion")
+    private String dominantEmotion;
+
+    @JsonProperty("emotion_vector")
+    private Map<String, Double> emotionVector;
+
+    @JsonProperty("analyzer_version")
+    private String analyzerVersion;
 }
-

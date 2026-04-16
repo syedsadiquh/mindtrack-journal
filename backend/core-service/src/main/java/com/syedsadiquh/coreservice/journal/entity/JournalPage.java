@@ -64,4 +64,7 @@ public class JournalPage extends BaseEntity {
 
     @OneToOne(mappedBy = "page", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private AiEnrichment aiEnrichment;
+
+    @OneToOne(mappedBy = "page", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private SentimentAnalysis sentimentAnalysis;
 }

@@ -62,9 +62,6 @@ public class JournalBlock extends BaseEntity {
     @Column(columnDefinition = "jsonb")
     private Map<String, Object> metadata;
 
-    @OneToOne(mappedBy = "block", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private SentimentAnalysis sentimentAnalysis;
-
     @OneToMany(mappedBy = "block", cascade = CascadeType.ALL)
     @OrderBy("versionNumber DESC")
     @Builder.Default

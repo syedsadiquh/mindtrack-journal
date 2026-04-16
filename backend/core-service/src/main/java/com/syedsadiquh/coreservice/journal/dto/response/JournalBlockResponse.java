@@ -24,7 +24,6 @@ public class JournalBlockResponse {
     private Integer orderIndex;
     private Map<String, Object> content;
     private Map<String, Object> metadata;
-    private SentimentAnalysisResponse sentiment;
     private List<JournalBlockResponse> childBlocks;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

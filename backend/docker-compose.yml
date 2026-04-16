@@ -299,12 +299,26 @@ services:
     container_name: sentiment-analyzer
     ports:
       - "8000:8000"
+    environment:
+      TRANSFORMERS_OFFLINE: "1"
+      MODELS_DIR: /app/models
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_TOPIC_SENTIMENT_REQUEST: journal.page.analysis.request
+      KAFKA_TOPIC_SENTIMENT_RESULT: journal.page.analysis.result
+      KAFKA_GROUP_ID: sentiment-analyzer
+    volumes:
+      # Model weights are not baked into the image.
+      # Run 'python ml/sentiment-analyzer/download_models.py' once before starting.
+      - ../ml/sentiment-analyzer/models:/app/models:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 10s
+      interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 10s
+      retries: 10
+      start_period: 60s
 
 volumes:
   postgres_data:

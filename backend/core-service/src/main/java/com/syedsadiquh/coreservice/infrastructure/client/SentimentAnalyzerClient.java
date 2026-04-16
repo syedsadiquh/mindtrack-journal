@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 /**
- * Feign client targeting the Python ML serverless function.
+ * Feign client targeting the Python ML service.
  * URL is configured via ${ml.sentiment-analyzer.url} in core-service.yaml.
  */
 @FeignClient(

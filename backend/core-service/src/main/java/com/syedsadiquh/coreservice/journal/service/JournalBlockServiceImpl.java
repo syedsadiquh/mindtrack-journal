@@ -4,19 +4,18 @@ import com.syedsadiquh.coreservice.journal.dto.request.CreateBlockRequest;
 import com.syedsadiquh.coreservice.journal.dto.request.ReorderBlocksRequest;
 import com.syedsadiquh.coreservice.journal.dto.request.UpdateBlockRequest;
 import com.syedsadiquh.coreservice.journal.dto.response.JournalBlockResponse;
-import com.syedsadiquh.coreservice.journal.dto.response.SentimentAnalysisResponse;
+import com.syedsadiquh.coreservice.journal.util.JournalBlockMapper;
 import com.syedsadiquh.coreservice.journal.entity.BlockVersion;
 import com.syedsadiquh.coreservice.journal.entity.JournalBlock;
 import com.syedsadiquh.coreservice.journal.entity.JournalPage;
-import com.syedsadiquh.coreservice.journal.entity.SentimentAnalysis;
-import com.syedsadiquh.coreservice.journal.event.BlockCreatedEvent;
-import com.syedsadiquh.coreservice.journal.event.BlockUpdatedEvent;
+import com.syedsadiquh.coreservice.journal.event.PageAnalysisEvent;
 import com.syedsadiquh.coreservice.journal.exception.JournalBadRequestException;
 import com.syedsadiquh.coreservice.journal.exception.JournalException;
 import com.syedsadiquh.coreservice.journal.exception.JournalNotFoundException;
 import com.syedsadiquh.coreservice.journal.repository.BlockVersionRepository;
 import com.syedsadiquh.coreservice.journal.repository.JournalBlockRepository;
 import com.syedsadiquh.coreservice.journal.repository.JournalPageRepository;
+import com.syedsadiquh.coreservice.journal.util.BlockTextUtil;
 import com.syedsadiquh.coreservice.journal.util.SanitizerUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,10 +74,10 @@ public class JournalBlockServiceImpl implements JournalBlockService {
 
             JournalBlock saved = blockRepository.save(block);
 
-            publishBlockCreatedEventIfText(saved);
+            publishPageAnalysisIfText(pageId, sanitizedContent);
 
             log.info("Block added to page {}: {} (type: {})", pageId, saved.getId(), saved.getType());
-            return toResponse(saved);
+            return JournalBlockMapper.toResponse(saved);
         } catch (JournalNotFoundException e) {
             throw e;
         } catch (Exception e) {
@@ -129,11 +128,11 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             JournalBlock updated = blockRepository.save(block);
 
             if (contentChanged) {
-                publishBlockUpdatedEventIfText(updated);
+                publishPageAnalysisIfText(pageId, updated.getContent());
             }
 
             log.info("Block updated: {} for page: {}", blockId, pageId);
-            return toResponse(updated);
+            return JournalBlockMapper.toResponse(updated);
         } catch (JournalNotFoundException e) {
             throw e;
         } catch (Exception e) {
@@ -156,6 +155,8 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             block.setDeletedBy(userId.toString());
             block.setDeletedAt(LocalDateTime.now());
             blockRepository.save(block);
+
+            publishPageAnalysisIfText(pageId, block.getContent());
 
             log.info("Block soft-deleted: {} from page: {}", blockId, pageId);
         } catch (JournalNotFoundException e) {
@@ -219,7 +220,7 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             log.info("Blocks reordered: {} for page: {}", orderedIds, pageId);
             return saved.stream()
                     .sorted(Comparator.comparingInt(JournalBlock::getOrderIndex))
-                    .map(this::toResponse)
+                    .map(JournalBlockMapper::toResponse)
                     .toList();
         } catch (JournalNotFoundException | JournalBadRequestException e) {
             throw e;
@@ -229,56 +230,10 @@ public class JournalBlockServiceImpl implements JournalBlockService {
         }
     }
 
-    private void publishBlockCreatedEventIfText(JournalBlock block) {
-        if (block.getContent() != null && block.getContent().containsKey("text")) {
-            String text = block.getContent().get("text").toString();
-            if (!text.isBlank()) {
-                eventPublisher.publishEvent(new BlockCreatedEvent(block.getId(), text));
-            }
+    private void publishPageAnalysisIfText(UUID pageId, Map<String, Object> content) {
+        if (BlockTextUtil.hasText(content)) {
+            eventPublisher.publishEvent(new PageAnalysisEvent(pageId));
         }
     }
 
-    private void publishBlockUpdatedEventIfText(JournalBlock block) {
-        if (block.getContent() != null && block.getContent().containsKey("text")) {
-            String text = block.getContent().get("text").toString();
-            if (!text.isBlank()) {
-                eventPublisher.publishEvent(new BlockUpdatedEvent(block.getId(), text));
-            }
-        }
-    }
-
-    private JournalBlockResponse toResponse(JournalBlock block) {
-        SentimentAnalysisResponse sentimentResponse = null;
-        if (block.getSentimentAnalysis() != null) {
-            SentimentAnalysis sa = block.getSentimentAnalysis();
-            sentimentResponse = SentimentAnalysisResponse.builder()
-                    .sentimentLabel(sa.getSentimentLabel())
-                    .sentimentScore(sa.getSentimentScore())
-                    .emotionVector(sa.getEmotionVector())
-                    .analysedAt(sa.getAnalysedAt())
-                    .build();
-        }
-
-        List<JournalBlockResponse> children = null;
-        if (block.getChildBlocks() != null && !block.getChildBlocks().isEmpty()) {
-            children = block.getChildBlocks().stream()
-                    .filter(b -> !b.getDeleted())
-                    .sorted(Comparator.comparingInt(JournalBlock::getOrderIndex))
-                    .map(this::toResponse)
-                    .toList();
-        }
-
-        return JournalBlockResponse.builder()
-                .id(block.getId())
-                .parentBlockId(block.getParentBlock() != null ? block.getParentBlock().getId() : null)
-                .type(block.getType())
-                .orderIndex(block.getOrderIndex())
-                .content(block.getContent())
-                .metadata(block.getMetadata())
-                .sentiment(sentimentResponse)
-                .childBlocks(children)
-                .createdAt(block.getCreatedAt())
-                .updatedAt(block.getUpdatedAt())
-                .build();
-    }
 }
