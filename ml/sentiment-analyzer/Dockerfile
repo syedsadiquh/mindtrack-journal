@@ -17,9 +17,12 @@ COPY requirements.txt ./
 RUN pip install torch --index-url https://download.pytorch.org/whl/cpu && \
 	pip install -r requirements.txt
 
-# Copy local model directories (must contain config.json, tokenizer files, and weights)
-COPY models/ ./models/
 COPY main.py ./
+
+# Model weights are NOT baked into the image — mount them at runtime.
+# Run 'python download_models.py' once to populate ml/sentiment-analyzer/models/,
+# then docker compose will bind-mount that directory here.
+RUN mkdir -p /app/models && chown app:app /app/models
 
 USER app
 

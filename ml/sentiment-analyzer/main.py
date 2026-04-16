@@ -49,8 +49,9 @@ SENTIMENT_LABEL_MAP = {
 sentiment_pipeline = None
 emotion_pipeline = None
 kafka_consumer_task = None
-# Thread pool for CPU-bound model inference to avoid blocking the asyncio event loop
-inference_executor = ThreadPoolExecutor(max_workers=2)
+inference_executor: ThreadPoolExecutor | None = None
+
+_WEIGHT_EXTENSIONS = (".safetensors", ".bin")
 
 
 def _validate_model_dir(path: str, name: str):
@@ -60,11 +61,19 @@ def _validate_model_dir(path: str, name: str):
             f"{name} model directory not found: {path}. "
             f"Run 'python download_models.py' to download models."
         )
-    config_path = os.path.join(path, "config.json")
-    if not os.path.exists(config_path):
+    if not os.path.exists(os.path.join(path, "config.json")):
         raise FileNotFoundError(
             f"{name} model is missing config.json in {path}. "
             f"Ensure config.json and tokenizer files are present alongside the model weights."
+        )
+    has_weights = any(
+        f.endswith(_WEIGHT_EXTENSIONS)
+        for f in os.listdir(path)
+    )
+    if not has_weights:
+        raise FileNotFoundError(
+            f"{name} model is missing weight files (*.safetensors or *.bin) in {path}. "
+            f"Run 'python download_models.py' to download models."
         )
 
 
@@ -162,10 +171,11 @@ async def kafka_consumer_loop():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load ML models and start Kafka consumer on startup."""
-    global kafka_consumer_task
+    global kafka_consumer_task, inference_executor
 
     _load_models()
 
+    inference_executor = ThreadPoolExecutor(max_workers=2)
     kafka_consumer_task = asyncio.create_task(kafka_consumer_loop())
     logger.info("Kafka consumer task started.")
 
@@ -177,6 +187,7 @@ async def lifespan(app: FastAPI):
             await kafka_consumer_task
         except asyncio.CancelledError:
             pass
+    inference_executor.shutdown(wait=True)
     logger.info("Shutdown complete.")
 
 
@@ -275,10 +286,16 @@ async def analyze(request: AnalysisRequest):
 async def health():
     """Health check endpoint for container orchestration."""
     models_ready = sentiment_pipeline is not None and emotion_pipeline is not None
+    kafka_alive = (
+        kafka_consumer_task is not None
+        and not kafka_consumer_task.done()
+    )
+    healthy = models_ready and kafka_alive
     return {
-        "status": "healthy" if models_ready else "loading",
+        "status": "healthy" if healthy else "degraded",
         "service": "sentiment-analyzer",
         "models_loaded": models_ready,
+        "kafka_consumer": "running" if kafka_alive else "stopped",
     }
 
 

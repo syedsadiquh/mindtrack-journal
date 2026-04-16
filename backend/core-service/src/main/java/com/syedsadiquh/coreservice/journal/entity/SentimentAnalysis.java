@@ -39,13 +39,13 @@ public class SentimentAnalysis extends BaseEntity {
     private String sentimentLabel;
 
     /**
-     * Sentiment score in the range [-1.0, +1.0].
+     * Sentiment score in the range [-1.0, +1.0], computed as
+     * {@code clamp(POSITIVE_score - NEGATIVE_score, -1.0, +1.0)}.
      * <ul>
      *   <li>-1.0 = strongly negative</li>
      *   <li> 0.0 = neutral</li>
      *   <li>+1.0 = strongly positive</li>
      * </ul>
-     * Derived from the dominant sentiment's confidence score.
      */
     @Column(name = "sentiment_score")
     private Float sentimentScore;
