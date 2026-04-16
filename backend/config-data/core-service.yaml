@@ -34,11 +34,18 @@ spring:
     bootstrap-servers: localhost:9092
     topics:
       onboarding: ${KAFKA_TOPIC_ONBOARDING:onboarding}
+      sentiment-request: ${KAFKA_TOPIC_SENTIMENT_REQUEST:journal.page.analysis.request}
+      sentiment-result: ${KAFKA_TOPIC_SENTIMENT_RESULT:journal.page.analysis.result}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       properties:
         spring.json.add.type.headers: false
+    consumer:
+      group-id: core-service
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
 
 feign:
   client:

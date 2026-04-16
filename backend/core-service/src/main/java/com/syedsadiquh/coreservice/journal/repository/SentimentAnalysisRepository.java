@@ -8,5 +8,5 @@ import java.util.UUID;
 
 public interface SentimentAnalysisRepository extends JpaRepository<SentimentAnalysis, UUID> {
 
-    Optional<SentimentAnalysis> findByBlockId(UUID blockId);
+    Optional<SentimentAnalysis> findByPageId(UUID pageId);
 }

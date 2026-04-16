@@ -4,6 +4,7 @@ import com.syedsadiquh.coreservice.journal.dto.request.CreateJournalPageRequest;
 import com.syedsadiquh.coreservice.journal.dto.request.UpdateJournalPageRequest;
 import com.syedsadiquh.coreservice.journal.dto.response.JournalPageDetailResponse;
 import com.syedsadiquh.coreservice.journal.dto.response.JournalPageResponse;
+import com.syedsadiquh.coreservice.journal.dto.response.SentimentAnalysisResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -25,4 +26,6 @@ public interface JournalPageService {
     void addTagToPage(UUID userId, UUID pageId, UUID tagId);
 
     void removeTagFromPage(UUID userId, UUID pageId, UUID tagId);
+
+    SentimentAnalysisResponse analyzePage(UUID userId, UUID pageId);
 }

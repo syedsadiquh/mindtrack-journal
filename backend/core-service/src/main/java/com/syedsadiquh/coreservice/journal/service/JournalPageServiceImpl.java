@@ -1,11 +1,14 @@
 package com.syedsadiquh.coreservice.journal.service;
 
+import com.syedsadiquh.coreservice.infrastructure.client.SentimentAnalyzerClient;
+import com.syedsadiquh.coreservice.infrastructure.client.dto.SentimentRequest;
+import com.syedsadiquh.coreservice.infrastructure.client.dto.SentimentResponse;
 import com.syedsadiquh.coreservice.journal.dto.request.CreateBlockRequest;
 import com.syedsadiquh.coreservice.journal.dto.request.CreateJournalPageRequest;
 import com.syedsadiquh.coreservice.journal.dto.request.UpdateJournalPageRequest;
 import com.syedsadiquh.coreservice.journal.dto.response.*;
 import com.syedsadiquh.coreservice.journal.entity.*;
-import com.syedsadiquh.coreservice.journal.event.BlockCreatedEvent;
+import com.syedsadiquh.coreservice.journal.event.PageAnalysisEvent;
 import com.syedsadiquh.coreservice.journal.exception.JournalBadRequestException;
 import com.syedsadiquh.coreservice.journal.exception.JournalException;
 import com.syedsadiquh.coreservice.journal.exception.JournalNotFoundException;
@@ -13,6 +16,8 @@ import com.syedsadiquh.coreservice.journal.exception.TenantAccessDeniedException
 import com.syedsadiquh.coreservice.journal.repository.JournalBlockRepository;
 import com.syedsadiquh.coreservice.journal.repository.JournalPageRepository;
 import com.syedsadiquh.coreservice.journal.repository.TagRepository;
+import com.syedsadiquh.coreservice.journal.util.BlockTextUtil;
+import com.syedsadiquh.coreservice.journal.util.JournalBlockMapper;
 import com.syedsadiquh.coreservice.journal.util.SanitizerUtil;
 import com.syedsadiquh.coreservice.user.api.TenantMembershipService;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +44,8 @@ public class JournalPageServiceImpl implements JournalPageService {
     private final TenantMembershipService tenantMembershipService;
     private final ApplicationEventPublisher eventPublisher;
     private final SanitizerUtil sanitizerUtil;
+    private final SentimentAnalyzerClient sentimentAnalyzerClient;
+    private final SentimentAnalysisService sentimentAnalysisService;
 
     @Transactional("journalTransactionManager")
     @Override
@@ -73,6 +80,7 @@ public class JournalPageServiceImpl implements JournalPageService {
 
             JournalPage saved = pageRepository.save(page);
 
+            boolean hasTextContent = false;
             if (request.getBlocks() != null && !request.getBlocks().isEmpty()) {
                 List<JournalBlock> blocks = new ArrayList<>();
                 for (int i = 0; i < request.getBlocks().size(); i++) {
@@ -93,13 +101,17 @@ public class JournalPageServiceImpl implements JournalPageService {
                             .deleted(false)
                             .build();
                     blocks.add(block);
+
+                    if (BlockTextUtil.hasText(safeContent)) {
+                        hasTextContent = true;
+                    }
                 }
                 List<JournalBlock> savedBlocks = blockRepository.saveAll(blocks);
                 saved.setBlocks(savedBlocks);
+            }
 
-                for (JournalBlock block : savedBlocks) {
-                    publishBlockEventIfText(block);
-                }
+            if (hasTextContent) {
+                eventPublisher.publishEvent(new PageAnalysisEvent(saved.getId()));
             }
 
             log.info("Journal page created: {} for user: {} on date: {}", saved.getId(), userId, saved.getEntryDate());
@@ -122,6 +134,8 @@ public class JournalPageServiceImpl implements JournalPageService {
             JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
                     .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
             return toDetailResponse(page);
+        } catch (JournalNotFoundException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error getting journal page for user: {} - {}", userId, e.getMessage(), e);
             throw new JournalException("Something went wrong. Failed to get journal page. Please try again.");
@@ -176,6 +190,8 @@ public class JournalPageServiceImpl implements JournalPageService {
             JournalPage updated = pageRepository.save(page);
             log.info("Journal page updated: {} for user: {} on date: {}", updated.getId(), userId, updated.getEntryDate());
             return toDetailResponse(updated);
+        } catch (JournalNotFoundException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error updating journal page for user: {} - {}", userId, e.getMessage(), e);
             throw new JournalException("Something went wrong. Failed to update journal page. Please try again.");
@@ -195,6 +211,8 @@ public class JournalPageServiceImpl implements JournalPageService {
             page.getTags().add(tag);
             pageRepository.save(page);
             log.info("Tag added to journal page: {} for user: {} on date: {}", tagId, userId, page.getEntryDate());
+        } catch (JournalNotFoundException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error adding tag to journal page for user: {} - {}", userId, e.getMessage(), e);
             throw new JournalException("Something went wrong. Failed to add tag to journal page. Please try again.");
@@ -211,24 +229,49 @@ public class JournalPageServiceImpl implements JournalPageService {
             page.getTags().removeIf(tag -> tag.getId().equals(tagId));
             pageRepository.save(page);
             log.info("Tag removed from journal page: {} for user: {} on date: {}", tagId, userId, page.getEntryDate());
+        } catch (JournalNotFoundException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Error removing tag from journal page for user: {} - {}", userId, e.getMessage(), e);
             throw new JournalException("Something went wrong. Failed to remove tag from journal page. Please try again.");
         }
     }
 
+    @Override
+    @Transactional("journalTransactionManager")
+    public SentimentAnalysisResponse analyzePage(UUID userId, UUID pageId) {
+        JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
+                .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
+
+        String text = BlockTextUtil.aggregateText(page);
+        if (text.isBlank()) {
+            throw new JournalBadRequestException("Page has no text content to analyze.");
+        }
+
+        SentimentResponse mlResult = sentimentAnalyzerClient.analyze(new SentimentRequest(pageId.toString(), text));
+
+        SentimentAnalysis saved = sentimentAnalysisService.saveAnalysisResult(
+                page,
+                mlResult.getSentimentLabel(),
+                mlResult.getSentimentScores(),
+                mlResult.getDominantEmotion(),
+                mlResult.getEmotionVector(),
+                mlResult.getAnalyzerVersion()
+        );
+
+        return SentimentAnalysisResponse.builder()
+                .sentimentLabel(saved.getSentimentLabel())
+                .sentimentScore(saved.getSentimentScore())
+                .sentimentScores(saved.getSentimentScores())
+                .dominantEmotion(saved.getDominantEmotion())
+                .emotionVector(saved.getEmotionVector())
+                .analysedAt(saved.getAnalysedAt())
+                .build();
+    }
+
     private void requireMembership(UUID userId, UUID tenantId) {
         if (!tenantMembershipService.isMember(tenantId, userId)) {
             throw new TenantAccessDeniedException("Access denied: user is not a member of tenant " + tenantId);
-        }
-    }
-
-    private void publishBlockEventIfText(JournalBlock block) {
-        if (block.getContent() != null && block.getContent().containsKey("text")) {
-            String text = block.getContent().get("text").toString();
-            if (!text.isBlank()) {
-                eventPublisher.publishEvent(new BlockCreatedEvent(block.getId(), text));
-            }
         }
     }
 
@@ -244,6 +287,8 @@ public class JournalPageServiceImpl implements JournalPageService {
                 .isPrivate(page.getIsPrivate())
                 .tags(page.getTags().stream().map(this::toTagResponse).toList())
                 .blockCount(page.getBlocks() != null ? (int) page.getBlocks().stream().filter(b -> !b.getDeleted()).count() : 0)
+                .sentimentLabel(page.getSentimentAnalysis() != null ? page.getSentimentAnalysis().getSentimentLabel() : null)
+                .dominantEmotion(page.getSentimentAnalysis() != null ? page.getSentimentAnalysis().getDominantEmotion() : null)
                 .createdAt(page.getCreatedAt())
                 .updatedAt(page.getUpdatedAt())
                 .build();
@@ -255,7 +300,7 @@ public class JournalPageServiceImpl implements JournalPageService {
             blockResponses = page.getBlocks().stream()
                     .filter(b -> !b.getDeleted() && b.getParentBlock() == null)
                     .sorted(Comparator.comparingInt(JournalBlock::getOrderIndex))
-                    .map(this::toBlockResponse)
+                    .map(JournalBlockMapper::toResponse)
                     .toList();
         }
 
@@ -271,6 +316,19 @@ public class JournalPageServiceImpl implements JournalPageService {
                     .build();
         }
 
+        SentimentAnalysisResponse sentimentResponse = null;
+        if (page.getSentimentAnalysis() != null) {
+            SentimentAnalysis sa = page.getSentimentAnalysis();
+            sentimentResponse = SentimentAnalysisResponse.builder()
+                    .sentimentLabel(sa.getSentimentLabel())
+                    .sentimentScore(sa.getSentimentScore())
+                    .sentimentScores(sa.getSentimentScores())
+                    .dominantEmotion(sa.getDominantEmotion())
+                    .emotionVector(sa.getEmotionVector())
+                    .analysedAt(sa.getAnalysedAt())
+                    .build();
+        }
+
         return JournalPageDetailResponse.builder()
                 .id(page.getId())
                 .tenantId(page.getTenantId())
@@ -282,44 +340,10 @@ public class JournalPageServiceImpl implements JournalPageService {
                 .isPrivate(page.getIsPrivate())
                 .tags(page.getTags().stream().map(this::toTagResponse).toList())
                 .blocks(blockResponses)
+                .sentiment(sentimentResponse)
                 .aiEnrichment(enrichmentResponse)
                 .createdAt(page.getCreatedAt())
                 .updatedAt(page.getUpdatedAt())
-                .build();
-    }
-
-    private JournalBlockResponse toBlockResponse(JournalBlock block) {
-        SentimentAnalysisResponse sentimentResponse = null;
-        if (block.getSentimentAnalysis() != null) {
-            SentimentAnalysis sa = block.getSentimentAnalysis();
-            sentimentResponse = SentimentAnalysisResponse.builder()
-                    .sentimentLabel(sa.getSentimentLabel())
-                    .sentimentScore(sa.getSentimentScore())
-                    .emotionVector(sa.getEmotionVector())
-                    .analysedAt(sa.getAnalysedAt())
-                    .build();
-        }
-
-        List<JournalBlockResponse> children = null;
-        if (block.getChildBlocks() != null && !block.getChildBlocks().isEmpty()) {
-            children = block.getChildBlocks().stream()
-                    .filter(b -> !b.getDeleted())
-                    .sorted(Comparator.comparingInt(JournalBlock::getOrderIndex))
-                    .map(this::toBlockResponse)
-                    .toList();
-        }
-
-        return JournalBlockResponse.builder()
-                .id(block.getId())
-                .parentBlockId(block.getParentBlock() != null ? block.getParentBlock().getId() : null)
-                .type(block.getType())
-                .orderIndex(block.getOrderIndex())
-                .content(block.getContent())
-                .metadata(block.getMetadata())
-                .sentiment(sentimentResponse)
-                .childBlocks(children)
-                .createdAt(block.getCreatedAt())
-                .updatedAt(block.getUpdatedAt())
                 .build();
     }
 

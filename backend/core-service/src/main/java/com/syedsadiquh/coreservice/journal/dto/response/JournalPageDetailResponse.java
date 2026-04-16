@@ -27,6 +27,7 @@ public class JournalPageDetailResponse {
     private Boolean isPrivate;
     private List<TagResponse> tags;
     private List<JournalBlockResponse> blocks;
+    private SentimentAnalysisResponse sentiment;
     private AiEnrichmentResponse aiEnrichment;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

@@ -1,0 +1,15 @@
+# Model weights are too large for git. Download with: python download_models.py
+*.safetensors
+*.bin
+*.pt
+*.onnx
+*.h5
+
+# Keep config and tokenizer files (small)
+!config.json
+!tokenizer.json
+!tokenizer_config.json
+!special_tokens_map.json
+!vocab.txt
+!bpe.codes
+!merges.txt

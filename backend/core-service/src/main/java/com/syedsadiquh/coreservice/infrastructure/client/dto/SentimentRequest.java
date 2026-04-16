@@ -1,5 +1,6 @@
 package com.syedsadiquh.coreservice.infrastructure.client.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,7 +9,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SentimentRequest {
-    private String entryId;
+    @JsonProperty("page_id")
+    private String pageId;
+
     private String text;
 }
-
