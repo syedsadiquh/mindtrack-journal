@@ -87,6 +87,19 @@ public class AnalyticsController {
         int resolvedYear  = year  > 0 ? year  : now.getYear();
         int resolvedMonth = month > 0 ? month : now.getMonthValue();
 
+        if (resolvedMonth < 1 || resolvedMonth > 12) {
+            return ResponseEntity.badRequest().body(BaseResponse.<List<MoodCalendarEntry>>builder()
+                    .success(false)
+                    .message("month must be between 1 and 12")
+                    .build());
+        }
+        if (resolvedYear < 1000 || resolvedYear > 9999) {
+            return ResponseEntity.badRequest().body(BaseResponse.<List<MoodCalendarEntry>>builder()
+                    .success(false)
+                    .message("year must be a four-digit value between 1000 and 9999")
+                    .build());
+        }
+
         List<MoodCalendarEntry> data = analyticsService.getMoodCalendar(
                 userId(jwt), resolvedYear, resolvedMonth);
 
