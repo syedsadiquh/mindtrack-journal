@@ -43,7 +43,7 @@ public class AnalyticsScheduler {
             try {
                 refreshStreakForUser(userId);
             } catch (Exception e) {
-                log.error("Streak refresh failed for user {}: {}", userId, e.getMessage());
+                log.error("Nightly streak refresh failed for user {}", userId, e);
             }
         }
 
