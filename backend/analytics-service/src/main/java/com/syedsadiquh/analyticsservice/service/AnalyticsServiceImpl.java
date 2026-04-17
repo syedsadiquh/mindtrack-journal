@@ -16,7 +16,6 @@ import java.time.LocalDate;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -54,7 +53,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     }
 
     private List<SentimentTrendPoint> aggregateWeekly(List<DailySentimentCache> records) {
-        WeekFields weekFields = WeekFields.of(Locale.getDefault());
+        WeekFields weekFields = WeekFields.ISO;
         Map<LocalDate, List<DailySentimentCache>> byWeek = records.stream()
                 .collect(Collectors.groupingBy(r ->
                         r.getEntryDate().with(weekFields.dayOfWeek(), 1)));  // ISO Monday
