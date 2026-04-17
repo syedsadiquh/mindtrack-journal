@@ -2,6 +2,7 @@ package com.syedsadiquh.coreservice.journal.controller;
 
 import com.syedsadiquh.coreservice.journal.dto.request.CreateJournalPageRequest;
 import com.syedsadiquh.coreservice.journal.dto.request.UpdateJournalPageRequest;
+import com.syedsadiquh.coreservice.journal.dto.response.JournalPageAnalyticsDto;
 import com.syedsadiquh.coreservice.journal.dto.response.JournalPageDetailResponse;
 import com.syedsadiquh.coreservice.journal.dto.response.JournalPageResponse;
 import com.syedsadiquh.coreservice.journal.dto.response.SentimentAnalysisResponse;
@@ -20,6 +21,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -100,6 +102,17 @@ public class JournalPageController {
         UUID userId = UUID.fromString(jwt.getSubject());
         journalPageService.removeTagFromPage(userId, pageId, tagId);
         return ResponseEntity.ok(new BaseResponse<>(true, "Tag removed from page"));
+    }
+
+    @GetMapping("/analytics-feed")
+    public ResponseEntity<BaseResponse<List<JournalPageAnalyticsDto>>> getAnalyticsFeed(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+
+        UUID userId = UUID.fromString(jwt.getSubject());
+        List<JournalPageAnalyticsDto> data = journalPageService.getAnalyticsFeed(userId, from, to);
+        return ResponseEntity.ok(new BaseResponse<>(true, "Analytics feed retrieved", data));
     }
 
     @PostMapping("/{pageId}/analyze")

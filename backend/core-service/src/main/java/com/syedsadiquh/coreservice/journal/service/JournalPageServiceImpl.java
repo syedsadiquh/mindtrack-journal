@@ -269,6 +269,13 @@ public class JournalPageServiceImpl implements JournalPageService {
                 .build();
     }
 
+    @Override
+    @Transactional(value = "journalTransactionManager", readOnly = true)
+    public List<JournalPageAnalyticsDto> getAnalyticsFeed(
+            UUID userId, LocalDate from, LocalDate to) {
+        return pageRepository.findAnalyticsFeed(userId, from, to);
+    }
+
     private void requireMembership(UUID userId, UUID tenantId) {
         if (!tenantMembershipService.isMember(tenantId, userId)) {
             throw new TenantAccessDeniedException("Access denied: user is not a member of tenant " + tenantId);
@@ -288,6 +295,7 @@ public class JournalPageServiceImpl implements JournalPageService {
                 .tags(page.getTags().stream().map(this::toTagResponse).toList())
                 .blockCount(page.getBlocks() != null ? (int) page.getBlocks().stream().filter(b -> !b.getDeleted()).count() : 0)
                 .sentimentLabel(page.getSentimentAnalysis() != null ? page.getSentimentAnalysis().getSentimentLabel() : null)
+                .sentimentScore(page.getSentimentAnalysis() != null ? page.getSentimentAnalysis().getSentimentScore() : null)
                 .dominantEmotion(page.getSentimentAnalysis() != null ? page.getSentimentAnalysis().getDominantEmotion() : null)
                 .createdAt(page.getCreatedAt())
                 .updatedAt(page.getUpdatedAt())

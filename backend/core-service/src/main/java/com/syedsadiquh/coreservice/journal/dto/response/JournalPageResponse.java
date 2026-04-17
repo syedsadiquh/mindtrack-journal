@@ -26,6 +26,7 @@ public class JournalPageResponse {
     private List<TagResponse> tags;
     private int blockCount;
     private String sentimentLabel;
+    private Float sentimentScore;
     private String dominantEmotion;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

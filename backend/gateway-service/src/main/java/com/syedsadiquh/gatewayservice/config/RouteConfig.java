@@ -33,6 +33,11 @@ public class RouteConfig {
                                 "/api/v1/journals/**"
                         )
                         .uri(coreServiceUri))
+                .route("analytics-routes", route -> route
+                        .path(
+                                "/api/v1/analytics/**"
+                        )
+                        .uri(analyticsServiceUri))
                 .route("notification-routes", route -> route
                         .path(
                                 "/api/v1/notification/**"
