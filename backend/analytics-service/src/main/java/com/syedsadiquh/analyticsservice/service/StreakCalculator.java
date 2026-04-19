@@ -19,8 +19,9 @@ public final class StreakCalculator {
         if (dates.isEmpty()) return 0;
 
         LocalDate today = LocalDate.now();
-        LocalDate mostRecent = dates.get(0);
-        if (!mostRecent.equals(today) && !mostRecent.equals(today.minusDays(1))) return 0;
+        LocalDate mostRecent = dates.getFirst();
+        // Accept mostRecent ahead of server "today" (client TZ > server UTC) as current.
+        if (mostRecent.isBefore(today.minusDays(1))) return 0;
 
         int streak = 0;
         LocalDate expected = mostRecent;
