@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { journalApi, analyticsApi } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { Button } from "@/components/ui/inputs/button";
@@ -15,17 +14,6 @@ export const Route = createFileRoute("/app/")({
 
 function JournalListPage() {
   const { user } = useAuth();
-  const qc = useQueryClient();
-
-  useEffect(() => {
-    analyticsApi
-      .refreshStreak()
-      .then(() => {
-        qc.invalidateQueries({ queryKey: ["analytics", "streak"] });
-        qc.invalidateQueries({ queryKey: ["analytics", "summary"] });
-      })
-      .catch(() => {});
-  }, [qc]);
 
   const pages = useQuery({
     queryKey: ["journal", "list"],
@@ -33,11 +21,18 @@ function JournalListPage() {
   });
   const streak = useQuery({
     queryKey: ["analytics", "streak"],
-    queryFn: () => analyticsApi.streak(),
+    queryFn: async () => {
+      await analyticsApi.refreshStreak().catch(() => {});
+      return analyticsApi.streak();
+    },
+    refetchOnMount: "always",
+    staleTime: 0,
   });
   const summary = useQuery({
     queryKey: ["analytics", "summary"],
     queryFn: () => analyticsApi.summary(),
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   const greeting = (() => {
