@@ -66,6 +66,41 @@ public class AnalyticsRefreshService {
                 userId, allPages.size(), allDates.size());
     }
 
+    /**
+     * Lightweight alternative to {@link #refreshForUser(UUID)}. Recomputes only
+     * streak fields + lastEntryDate + totalEntries on the summary row. Skips
+     * DailySentimentCache rewrite and sentiment aggregates — cheap enough to
+     * run on dashboard mount.
+     */
+    @Transactional
+    public void refreshStreakForUser(UUID userId) {
+        log.debug("Starting streak-only refresh for user {}", userId);
+
+        List<JournalPageDto> allPages = fetchAllPages();
+        List<LocalDate> allDates = allPages.stream()
+                .map(JournalPageDto::getEntryDate)
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .toList();
+
+        int currentStreak = StreakCalculator.currentStreak(allDates);
+        int longestStreak = StreakCalculator.longestStreak(allDates);
+        LocalDate lastEntryDate = allDates.isEmpty() ? null : allDates.get(0);
+        long totalEntries = allPages.size();
+
+        UserAnalyticsSummary summary = summaryRepo.findById(userId)
+                .orElseGet(() -> UserAnalyticsSummary.builder().userId(userId).build());
+        summary.setCurrentStreak(currentStreak);
+        summary.setLongestStreak(longestStreak);
+        summary.setLastEntryDate(lastEntryDate);
+        summary.setTotalEntries(totalEntries);
+        summary.setComputedAt(LocalDateTime.now());
+        summaryRepo.save(summary);
+
+        log.debug("Streak refresh complete for user {} — streak {}, total {}",
+                userId, currentStreak, totalEntries);
+    }
+
     // Fetching
 
     private List<JournalPageDto> fetchAllPages() {

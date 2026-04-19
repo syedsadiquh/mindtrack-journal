@@ -29,6 +29,7 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @ConfigurationProperties(prefix = "security")
 public class SecurityConfig {
 
+    // CORS intentionally handled at the gateway only — avoids duplicate Access-Control-* headers.
     private String[] publicEndpoints;
 
     @Bean
@@ -66,4 +67,3 @@ public class SecurityConfig {
         return converter;
     }
 }
-
