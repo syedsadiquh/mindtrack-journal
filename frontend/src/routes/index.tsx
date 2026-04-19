@@ -62,9 +62,9 @@ function Header() {
           <a href="#privacy" className="hover:text-foreground">
             Privacy
           </a>
-          <Link to="/admin/login" className="hover:text-foreground">
+          {/* <Link to="/admin/login" className="hover:text-foreground">
             Admin
-          </Link>
+          </Link> */}
         </nav>
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
