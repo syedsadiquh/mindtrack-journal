@@ -9,9 +9,9 @@ services:
 
 app:
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:"http://localhost:3000"}
-    allowed-methods: ${APP_CORS_ALLOWED_METHODS:"GET, POST, PUT, DELETE, PATCH, OPTIONS"}
-    allowed-headers: ${APP_CORS_ALLOWED_HEADERS:"*"}
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:3000}
+    allowed-methods: ${APP_CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,PATCH,OPTIONS}
+    allowed-headers: ${APP_CORS_ALLOWED_HEADERS:*}
     allow-credentials: ${APP_CORS_ALLOWED_CREDENTIALS:true}
 
 eureka:

@@ -10,5 +10,16 @@ security:
     - /api/v1/auth/login
     - /api/v1/auth/register
     - /api/v1/auth/refresh-token
+    - /api/v1/auth/logout
     - /api/v1/plans
     - /api/v1/plans/**
+
+auth:
+  cookie:
+    # Dev defaults: http over localhost. In prod set AUTH_COOKIE_SECURE=true, AUTH_COOKIE_SAME_SITE=Strict (or Lax), AUTH_COOKIE_DOMAIN=yourdomain.com
+    name: ${AUTH_COOKIE_NAME:refresh_token}
+    path: ${AUTH_COOKIE_PATH:/api/v1/auth}
+    domain: ${AUTH_COOKIE_DOMAIN:}
+    secure: ${AUTH_COOKIE_SECURE:false}
+    same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
+    max-age-seconds: ${AUTH_COOKIE_MAX_AGE:1800}
