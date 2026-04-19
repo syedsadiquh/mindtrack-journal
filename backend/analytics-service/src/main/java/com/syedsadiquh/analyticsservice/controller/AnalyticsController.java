@@ -48,6 +48,22 @@ public class AnalyticsController {
     }
 
     /**
+     * Lightweight refresh — recomputes streak + lastEntryDate + totalEntries only.
+     * Skips daily cache and sentiment aggregates. Cheap enough to trigger on
+     * dashboard mount.
+     * <p>
+     * POST /api/v1/analytics/refresh/streak
+     */
+    @PostMapping("/refresh/streak")
+    public ResponseEntity<BaseResponse<Void>> refreshStreak(@AuthenticationPrincipal Jwt jwt) {
+        analyticsRefreshService.refreshStreakForUser(userId(jwt));
+        return ResponseEntity.ok(BaseResponse.<Void>builder()
+                .success(true)
+                .message("Streak refreshed successfully")
+                .build());
+    }
+
+    /**
      * Sentiment trend over time.
      * <p>
      * GET /api/v1/analytics/sentiment/trends?period=DAILY|WEEKLY|MONTHLY&from=YYYY-MM-DD&to=YYYY-MM-DD

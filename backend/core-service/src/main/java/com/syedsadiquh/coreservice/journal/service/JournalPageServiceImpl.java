@@ -102,7 +102,8 @@ public class JournalPageServiceImpl implements JournalPageService {
                             .build();
                     blocks.add(block);
 
-                    if (BlockTextUtil.hasText(safeContent)) {
+                    if (BlockTextUtil.ANALYSABLE_TYPES.contains(blockReq.getType())
+                            && BlockTextUtil.hasText(safeContent)) {
                         hasTextContent = true;
                     }
                 }

@@ -74,7 +74,7 @@ public class JournalBlockServiceImpl implements JournalBlockService {
 
             JournalBlock saved = blockRepository.save(block);
 
-            publishPageAnalysisIfText(pageId, sanitizedContent);
+            publishPageAnalysisIfText(pageId, saved.getType(), sanitizedContent);
 
             log.info("Block added to page {}: {} (type: {})", pageId, saved.getId(), saved.getType());
             return JournalBlockMapper.toResponse(saved);
@@ -128,7 +128,7 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             JournalBlock updated = blockRepository.save(block);
 
             if (contentChanged) {
-                publishPageAnalysisIfText(pageId, updated.getContent());
+                publishPageAnalysisIfText(pageId, updated.getType(), updated.getContent());
             }
 
             log.info("Block updated: {} for page: {}", blockId, pageId);
@@ -156,7 +156,7 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             block.setDeletedAt(LocalDateTime.now());
             blockRepository.save(block);
 
-            publishPageAnalysisIfText(pageId, block.getContent());
+            publishPageAnalysisIfText(pageId, block.getType(), block.getContent());
 
             log.info("Block soft-deleted: {} from page: {}", blockId, pageId);
         } catch (JournalNotFoundException e) {
@@ -230,8 +230,10 @@ public class JournalBlockServiceImpl implements JournalBlockService {
         }
     }
 
-    private void publishPageAnalysisIfText(UUID pageId, Map<String, Object> content) {
-        if (BlockTextUtil.hasText(content)) {
+    private void publishPageAnalysisIfText(UUID pageId,
+                                           com.syedsadiquh.coreservice.journal.enums.BlockType type,
+                                           Map<String, Object> content) {
+        if (BlockTextUtil.ANALYSABLE_TYPES.contains(type) && BlockTextUtil.hasText(content)) {
             eventPublisher.publishEvent(new PageAnalysisEvent(pageId));
         }
     }
