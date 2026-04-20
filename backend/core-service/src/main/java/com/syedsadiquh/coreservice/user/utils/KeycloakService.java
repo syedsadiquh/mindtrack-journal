@@ -66,8 +66,10 @@ public class KeycloakService {
         user.put("username", request.getUsername());
         user.put("email", request.getEmail());
         user.put("enabled", true);
+        user.put("emailVerified", true);
         user.put("firstName", request.getFirstName());
         user.put("lastName", request.getLastName());
+        user.put("requiredActions", Collections.emptyList());
 
         Map<String, Object> creds = new HashMap<>();
         creds.put("type", "password");
@@ -94,6 +96,34 @@ public class KeycloakService {
         String path = location.getPath();
         String userId = path.substring(path.lastIndexOf('/') + 1);
 
+        // Clear any realm-default required actions (e.g. VERIFY_PROFILE) that Keycloak
+        // auto-attaches on creation — otherwise login fails with "Account is not fully set up".
+        try {
+            Map<String, Object> clear = new HashMap<>();
+            clear.put("requiredActions", Collections.emptyList());
+            clear.put("emailVerified", true);
+            restClient.put()
+                    .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userId)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(clear)
+                    .retrieve()
+                    .toBodilessEntity();
+
+            // Debug: read back to see what Keycloak kept
+            Map fetched = restClient.get()
+                    .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userId)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .retrieve()
+                    .body(Map.class);
+            log.info("KC user after PUT: requiredActions={}, emailVerified={}, enabled={}",
+                    fetched != null ? fetched.get("requiredActions") : null,
+                    fetched != null ? fetched.get("emailVerified") : null,
+                    fetched != null ? fetched.get("enabled") : null);
+        } catch (Exception e) {
+            log.warn("Failed to clear requiredActions for {}: {}", userId, e.getMessage());
+        }
+
         // Assign the default USER system role in Keycloak
         try {
             assignRole(request.getUsername(), SystemRole.ROLE_USER, adminToken);
@@ -118,12 +148,32 @@ public class KeycloakService {
         }
         String userId = (String) users.getFirst().get("id");
 
-        // B. Fetch the Role Details
-        Map role = restClient.get()
-                .uri(keycloakUrl + "/admin/realms/" + realm + "/roles/" + roleName)
-                .header("Authorization", "Bearer " + adminToken)
-                .retrieve()
-                .body(Map.class);
+        // B. Fetch the Role Details (auto-create if missing so the realm self-heals)
+        Map role;
+        try {
+            role = restClient.get()
+                    .uri(keycloakUrl + "/admin/realms/" + realm + "/roles/" + roleName)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .retrieve()
+                    .body(Map.class);
+        } catch (Exception notFound) {
+            log.info("Realm role '{}' missing — creating it.", roleName);
+            Map<String, Object> newRole = new HashMap<>();
+            newRole.put("name", roleName);
+            newRole.put("description", roleName + " realm role (auto-created)");
+            restClient.post()
+                    .uri(keycloakUrl + "/admin/realms/" + realm + "/roles")
+                    .header("Authorization", "Bearer " + adminToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(newRole)
+                    .retrieve()
+                    .toBodilessEntity();
+            role = restClient.get()
+                    .uri(keycloakUrl + "/admin/realms/" + realm + "/roles/" + roleName)
+                    .header("Authorization", "Bearer " + adminToken)
+                    .retrieve()
+                    .body(Map.class);
+        }
 
         // C. Assign the Role
         restClient.post()

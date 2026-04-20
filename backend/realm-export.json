@@ -83,8 +83,22 @@
   "roles": {
     "realm": [
       {
+        "name": "USER",
+        "description": "Standard User",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "mindtrack-journal"
+      },
+      {
         "name": "ADMIN",
         "description": "Administrator",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "mindtrack-journal"
+      },
+      {
+        "name": "SYS_ADMIN",
+        "description": "System Administrator",
         "composite": false,
         "clientRole": false,
         "containerId": "mindtrack-journal"
