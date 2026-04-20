@@ -34,8 +34,9 @@ function RegisterPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const trimmedUsername = form.username.trim();
     const username = form.username.trim().toLowerCase();
-    if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+    if (!/^[a-z0-9._-]{3,30}$/.test(trimmedUsername)) {
       toast.error(
         "Username must be 3–30 chars: lowercase letters, numbers, dot, underscore or hyphen.",
       );
