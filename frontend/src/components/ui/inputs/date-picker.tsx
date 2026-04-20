@@ -68,7 +68,9 @@ export function DatePicker({
             className,
           )}
         >
-          <span>{selected ? format(selected, "dd / MM / yyyy") : placeholder}</span>
+          <span>
+            {selected ? format(selected, "dd / MM / yyyy") : placeholder}
+          </span>
           <CalendarIcon className="h-4 w-4 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
@@ -91,12 +93,16 @@ export function DatePicker({
           className="[--rdp-accent-color:var(--color-primary)] [--rdp-accent-background-color:color-mix(in_oklab,var(--color-primary)_15%,transparent)]"
           classNames={{
             month: "relative",
-            month_caption: "flex items-center justify-center py-2 font-serif text-base",
+            month_caption:
+              "flex items-center justify-center py-2 font-serif text-base",
             caption_label: "font-medium",
             nav: "absolute right-0 top-1 z-10 flex items-center gap-0.5",
-            button_previous: "h-7 w-7 rounded-full hover:bg-muted inline-flex items-center justify-center",
-            button_next: "h-7 w-7 rounded-full hover:bg-muted inline-flex items-center justify-center",
-            weekday: "text-xs font-medium text-muted-foreground uppercase tracking-wider",
+            button_previous:
+              "h-7 w-7 rounded-full hover:bg-muted inline-flex items-center justify-center",
+            button_next:
+              "h-7 w-7 rounded-full hover:bg-muted inline-flex items-center justify-center",
+            weekday:
+              "text-xs font-medium text-muted-foreground uppercase tracking-wider",
             day: "h-9 w-9 p-0 text-sm",
             day_button:
               "h-9 w-9 rounded-full hover:bg-secondary aria-selected:bg-primary aria-selected:text-primary-foreground disabled:opacity-30 disabled:pointer-events-none",

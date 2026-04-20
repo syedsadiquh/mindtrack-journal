@@ -159,7 +159,7 @@ async function rawRequest<T>(
   }
 
   if (!res.ok) {
-    const msg =
+    const rawMsg =
       (json &&
       typeof json === "object" &&
       "message" in json &&
@@ -168,6 +168,7 @@ async function rawRequest<T>(
         : null) ||
       res.statusText ||
       "Request failed";
+    const msg = humanizeErrorMessage(rawMsg, res.status);
     logger.warn("api: error response", {
       method,
       url,
@@ -178,6 +179,54 @@ async function rawRequest<T>(
   }
 
   return json as T;
+}
+
+const KEYCLOAK_ERROR_MAP: Record<string, string> = {
+  "error-username-invalid-character":
+    "Username has invalid characters. Use lowercase letters, numbers, dot, underscore or hyphen.",
+  "error-invalid-email": "Email address is not valid.",
+  "error-email-exists": "An account with this email already exists.",
+  "error-username-exists": "That username is already taken.",
+  "error-user-exists": "An account with these details already exists.",
+  "error-invalid-password": "Password does not meet requirements.",
+  "error-password-too-short": "Password is too short.",
+  "error-password-min-length": "Password is too short.",
+  invalid_grant: "Incorrect username or password.",
+};
+
+function humanizeErrorMessage(raw: string, status: number): string {
+  // Try to pull a JSON blob out of the message (Keycloak/backend embed patterns)
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]) as {
+        errorMessage?: string;
+        error_description?: string;
+        error?: string;
+        field?: string;
+      };
+      const code = parsed.errorMessage || parsed.error || "";
+      if (code && KEYCLOAK_ERROR_MAP[code]) return KEYCLOAK_ERROR_MAP[code];
+      if (parsed.error_description) return parsed.error_description;
+      if (code) return humanizeCode(code);
+    } catch {
+      // fall through
+    }
+  }
+  if (KEYCLOAK_ERROR_MAP[raw]) return KEYCLOAK_ERROR_MAP[raw];
+  if (status === 401) return "Incorrect username or password.";
+  if (status === 403) return "You don't have permission to do that.";
+  if (status === 404) return "Not found.";
+  if (status === 409) return "That already exists.";
+  if (status >= 500) return "Server error. Please try again.";
+  return raw;
+}
+
+function humanizeCode(code: string): string {
+  return code
+    .replace(/^error-/, "")
+    .replace(/[-_]/g, " ")
+    .replace(/^./, (c) => c.toUpperCase());
 }
 
 function describeError(e: unknown): Record<string, unknown> {
