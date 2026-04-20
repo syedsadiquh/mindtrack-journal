@@ -59,7 +59,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && timeout 3 cat <&3 | grep -q '\"status\": \"UP\"'"]
+      test: ["CMD-SHELL", "P=$${KC_HTTP_RELATIVE_PATH:-/}; P=$${P%/}; exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET %s/realms/master HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' \"$$P\" >&3 && timeout 3 cat <&3 | grep -q '^HTTP/1.1 200'"]
       interval: 15s
       timeout: 10s
       retries: 30
