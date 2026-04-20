@@ -42,6 +42,10 @@ function RegisterPage() {
       );
       return;
     }
+    if (form.password.length < 8) {
+      toast.error("Password must be at least 8 characters.");
+      return;
+    }
     setSubmitting(true);
     try {
       await authApi.register({

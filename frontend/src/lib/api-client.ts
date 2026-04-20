@@ -168,6 +168,12 @@ async function rawRequest<T>(
         : null) ||
       res.statusText ||
       "Request failed";
+    console.warn("raw server error:", {
+      status: res.status,
+      url,
+      rawMsg,
+      body: json,
+    });
     const msg = humanizeErrorMessage(rawMsg, res.status);
     logger.warn("api: error response", {
       method,
