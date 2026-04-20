@@ -34,17 +34,24 @@ function RegisterPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const username = form.username.trim().toLowerCase();
+    if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
+      toast.error(
+        "Username must be 3–30 chars: lowercase letters, numbers, dot, underscore or hyphen.",
+      );
+      return;
+    }
     setSubmitting(true);
     try {
       await authApi.register({
-        username: form.username,
+        username,
         email: form.email,
         password: form.password,
         firstName: form.firstName,
         lastName: form.lastName || undefined,
       });
       // Auto-login
-      await login(form.username, form.password, "USER");
+      await login(username, form.password, "USER");
       toast.success("Your journal is ready.");
       navigate({ to: "/app" });
     } catch (err) {
@@ -149,6 +156,7 @@ function FieldInline({
         className="text-xs uppercase tracking-wider text-muted-foreground"
       >
         {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
       <Input
         id={id}

@@ -40,7 +40,7 @@ function LoginPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await login(username, password, "USER");
+      await login(username.trim().toLowerCase(), password, "USER");
       toast.success("Welcome back.");
       navigate({ to: search.redirect ?? "/app" });
     } catch (err) {
@@ -133,6 +133,7 @@ function Field({
         className="text-xs uppercase tracking-wider text-muted-foreground"
       >
         {label}
+        {required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
       <Input
         id={id}
