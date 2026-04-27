@@ -7,6 +7,7 @@ import { formatLongDate } from "@/lib/sentiment";
 import { ArrowLeft, Loader2, Lock, Sparkles } from "lucide-react";
 import type { JournalBlock } from "@/lib/types";
 import { toast } from "sonner";
+import { decode } from "he";
 
 export const Route = createFileRoute("/app/entry/$pageId")({
   head: () => ({ meta: [{ title: "Entry — MindTrack" }] }),
@@ -174,9 +175,9 @@ function EntryView() {
 }
 
 function BlockView({ block }: { block: JournalBlock }) {
-  const text = (block.content?.text as string | undefined) || "";
-  const url = (block.content?.url as string | undefined) || "";
-  const caption = (block.content?.caption as string | undefined) || "";
+  const text = decode((block.content?.text as string | undefined) || "");
+  const url = decode((block.content?.url as string | undefined) || "");
+  const caption = decode((block.content?.caption as string | undefined) || "");
   switch (block.type) {
     case "HEADING":
       return (
