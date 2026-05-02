@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { Loader2, UserMinus, Users } from "lucide-react";
 
 export const Route = createFileRoute("/admin/users")({
-  head: () => ({ meta: [{ title: "Users — Admin" }] }),
+  head: () => ({ meta: [{ title: "Users - Admin" }] }),
   component: UsersAdminPage,
 });
 

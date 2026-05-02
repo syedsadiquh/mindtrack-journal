@@ -37,7 +37,8 @@ export interface Tenant {
 export interface UserProfile {
   id: string;
   username: string;
-  fullName: string;
+  firstName: string;
+  lastName: string;
   email: string;
   defaultTenant: Tenant;
   active: boolean;

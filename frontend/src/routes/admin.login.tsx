@@ -10,7 +10,7 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { AuthShell } from "./login";
 
 export const Route = createFileRoute("/admin/login")({
-  head: () => ({ meta: [{ title: "Admin sign in — MindTrack" }] }),
+  head: () => ({ meta: [{ title: "Admin sign in - MindTrack" }] }),
   component: AdminLoginPage,
 });
 
@@ -41,7 +41,7 @@ function AdminLoginPage() {
         toast.success("Welcome back, admin.");
         navigate({ to: "/admin" });
       } else {
-        // Server didn't return admin role — proceed anyway based on intent, but warn
+        // Server didn't return admin role - proceed anyway based on intent, but warn
         toast.warning("Signed in. Some admin actions may be restricted.");
         navigate({ to: "/admin" });
       }
@@ -56,7 +56,7 @@ function AdminLoginPage() {
   return (
     <AuthShell
       title="Admin console"
-      subtitle="Privileged access — sign in to continue."
+      subtitle="Privileged access - sign in to continue."
     >
       <div className="mb-5 flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-xs text-secondary-foreground">
         <ShieldCheck className="h-4 w-4 text-bloom" /> Admin & System Admin only

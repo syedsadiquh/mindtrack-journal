@@ -33,7 +33,7 @@
       "webOrigins": [],
       "publicClient": false,
       "protocol": "openid-connect",
-      "fullScopeAllowed": false,
+      "fullScopeAllowed": true,
       "bearerOnly": false,
       "serviceAccountsEnabled": true,
       "directAccessGrantsEnabled": true,
@@ -132,6 +132,18 @@
         }
       ],
       "realmRoles": ["free"]
+    },
+    {
+      "username": "service-account-user-service-client",
+      "enabled": true,
+      "serviceAccountClientId": "user-service-client",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users"
+        ]
+      }
     }
   ]
 }

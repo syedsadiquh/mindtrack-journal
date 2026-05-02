@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { journalApi } from "@/lib/api";
 import { Button } from "@/components/ui/inputs/button";
@@ -10,12 +10,13 @@ import { toast } from "sonner";
 import { decode } from "he";
 
 export const Route = createFileRoute("/app/entry/$pageId")({
-  head: () => ({ meta: [{ title: "Entry — MindTrack" }] }),
+  head: () => ({ meta: [{ title: "Entry - MindTrack" }] }),
   component: EntryView,
 });
 
 function EntryView() {
   const { pageId } = Route.useParams();
+  const router = useRouter();
   const qc = useQueryClient();
   const page = useQuery({
     queryKey: ["journal", "page", pageId],
@@ -43,8 +44,12 @@ function EntryView() {
     return (
       <div className="py-24 text-center">
         <p className="text-muted-foreground">This entry could not be loaded.</p>
-        <Button asChild variant="ghost" className="mt-4">
-          <Link to="/app">Back to journal</Link>
+        <Button
+          variant="ghost"
+          className="mt-4"
+          onClick={() => router.history.back()}
+        >
+          Back to journal
         </Button>
       </div>
     );
@@ -58,14 +63,12 @@ function EntryView() {
   return (
     <article className="mx-auto max-w-3xl animate-bloom-in pb-16">
       <Button
-        asChild
         variant="ghost"
         size="sm"
         className="mb-6 -ml-2 text-muted-foreground"
+        onClick={() => router.history.back()}
       >
-        <Link to="/app">
-          <ArrowLeft className="mr-1 h-4 w-4" /> All entries
-        </Link>
+        <ArrowLeft className="mr-1 h-4 w-4" /> All entries
       </Button>
 
       <header className="mb-10">
@@ -167,7 +170,7 @@ function EntryView() {
         )}
 
       <p className="mt-12 text-center text-xs text-muted-foreground">
-        Entries are immutable — to record a different perspective, write a new
+        Entries are immutable - to record a different perspective, write a new
         entry for the same date.
       </p>
     </article>

@@ -16,7 +16,7 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "MindTrack — A private journal for your inner weather" },
+      { title: "MindTrack - A private journal for your inner weather" },
       {
         name: "description",
         content:
@@ -96,7 +96,7 @@ function Hero() {
           for <em className="text-bloom not-italic">your</em> inner weather.
         </h1>
         <p className="mx-auto mt-7 max-w-xl animate-bloom-in text-lg leading-relaxed text-muted-foreground md:text-xl">
-          MindTrack is an encrypted journal that listens — gently surfacing the
+          MindTrack is an encrypted journal that listens - gently surfacing the
           patterns in your emotions without ever showing them to anyone else.
         </p>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
@@ -141,7 +141,7 @@ const features = [
   {
     icon: Sparkles,
     title: "Quiet emotion analysis",
-    body: "Every entry is read by a private model that maps sentiment and dominant emotions — never sent to a third party.",
+    body: "Every entry is read by a private model that maps sentiment and dominant emotions - never sent to a third party.",
   },
   {
     icon: LineChart,

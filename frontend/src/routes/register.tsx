@@ -9,9 +9,10 @@ import { useAuth } from "@/lib/use-auth";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { AuthShell } from "./login";
+import { isValidUsername } from "@/lib/utils";
 
 export const Route = createFileRoute("/register")({
-  head: () => ({ meta: [{ title: "Create your journal — MindTrack" }] }),
+  head: () => ({ meta: [{ title: "Create your journal - MindTrack" }] }),
   component: RegisterPage,
 });
 
@@ -36,14 +37,14 @@ function RegisterPage() {
     e.preventDefault();
     const trimmedUsername = form.username.trim();
     const username = form.username.trim().toLowerCase();
-    if (!/^[a-z0-9._-]{3,30}$/.test(trimmedUsername)) {
+    if (!isValidUsername(trimmedUsername)) {
       toast.error(
-        "Username must be 3–30 chars: lowercase letters, numbers, dot, underscore or hyphen.",
+        "Username must be 3-30 chars: lowercase letters, numbers, dot, underscore or hyphen",
       );
       return;
     }
     if (form.password.length < 8) {
-      toast.error("Password must be at least 8 characters.");
+      toast.error("Password must be at least 8 characters");
       return;
     }
     setSubmitting(true);

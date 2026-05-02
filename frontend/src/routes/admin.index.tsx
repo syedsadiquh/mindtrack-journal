@@ -27,7 +27,7 @@ import { Loader2, Plus, Power, PowerOff } from "lucide-react";
 import type { Plan, PlanTier } from "@/lib/types";
 
 export const Route = createFileRoute("/admin/")({
-  head: () => ({ meta: [{ title: "Plans — Admin" }] }),
+  head: () => ({ meta: [{ title: "Plans - Admin" }] }),
   component: PlansAdminPage,
 });
 
@@ -127,7 +127,7 @@ function PlansAdminPage() {
           ))}
           {(plans.data?.length ?? 0) === 0 && (
             <div className="col-span-full rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
-              No plans yet — create your first one.
+              No plans yet - create your first one.
             </div>
           )}
         </div>

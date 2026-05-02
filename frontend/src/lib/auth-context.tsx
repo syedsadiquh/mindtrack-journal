@@ -8,11 +8,11 @@ import {
 } from "./api-client";
 import { logger } from "./logger";
 import { userApi } from "./api";
-import type { UserRole } from "./types";
+import type { UserRole, UserProfile } from "./types";
 import { AuthContext } from "./use-auth";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<import("./types").UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRoleState] = useState<UserRole>(
     (tokenStore.getRole() as UserRole) || "USER",

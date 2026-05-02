@@ -29,7 +29,7 @@ import { toast } from "sonner";
 import { sentimentColor } from "@/lib/sentiment";
 
 export const Route = createFileRoute("/app/analytics")({
-  head: () => ({ meta: [{ title: "Insights — MindTrack" }] }),
+  head: () => ({ meta: [{ title: "Insights - MindTrack" }] }),
   component: AnalyticsPage,
 });
 
@@ -85,7 +85,7 @@ function AnalyticsPage() {
             Your inner weather.
           </h1>
           <p className="mt-2 max-w-xl text-muted-foreground">
-            A gentle map of your emotions over time — visible only to you.
+            A gentle map of your emotions over time - visible only to you.
           </p>
         </div>
         <Button
@@ -109,7 +109,7 @@ function AnalyticsPage() {
         <SummaryStat
           icon={BookOpen}
           label="Entries"
-          value={summary.data?.totalEntries ?? "—"}
+          value={summary.data?.totalEntries ?? "-"}
         />
         <SummaryStat
           icon={TrendingUp}
@@ -117,19 +117,19 @@ function AnalyticsPage() {
           value={
             summary.data
               ? `${(summary.data.avgSentimentScore * 100).toFixed(0)}%`
-              : "—"
+              : "-"
           }
         />
         <SummaryStat
           icon={Sparkles}
           label="Most felt"
-          value={summary.data?.mostFrequentEmotion ?? "—"}
+          value={summary.data?.mostFrequentEmotion ?? "-"}
           capitalize
         />
         <SummaryStat
           icon={Flame}
           label="Longest streak"
-          value={summary.data?.longestStreak ?? "—"}
+          value={summary.data?.longestStreak ?? "-"}
           suffix="days"
         />
       </section>

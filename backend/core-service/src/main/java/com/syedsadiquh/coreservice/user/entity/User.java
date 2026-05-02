@@ -20,7 +20,8 @@ import java.util.UUID;
 @Table(name = "users", indexes = {
         @Index(name = "idx_user_username", columnList = "username"),
         @Index(name = "idx_user_email", columnList = "email"),
-        @Index(name = "idx_user_full_name", columnList = "full_name")
+        @Index(name = "idx_user_first_name", columnList = "first_name"),
+        @Index(name = "idx_user_last_name", columnList = "last_name"),
 })
 public class User extends AuditableEntity {
 
@@ -38,8 +39,11 @@ public class User extends AuditableEntity {
     @Column(unique = true, length = 100)
     private String username;
 
-    @Column(name = "full_name", nullable = false)
-    private String fullName;
+    @Column(name = "first_name", nullable = false)
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
 
     @Column(unique = true, nullable = false, length = 255)
     private String email;

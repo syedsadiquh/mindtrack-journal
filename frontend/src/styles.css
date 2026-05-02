@@ -5,7 +5,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Dusk Bloom — warm, premium journaling palette
+/* Dusk Bloom - warm, premium journaling palette
  * cream blush · dusty rose · plum · deep wine
  * Typography: Lora (heading serif) + Nunito Sans (body)
  */
@@ -73,7 +73,7 @@
 :root {
   --radius: 0.875rem;
 
-  /* Surfaces — cream blush warmth */
+  /* Surfaces - cream blush warmth */
   --background: oklch(0.972 0.012 20);
   --foreground: oklch(0.22 0.04 350);
 
@@ -83,11 +83,11 @@
   --popover: oklch(0.985 0.008 25);
   --popover-foreground: oklch(0.22 0.04 350);
 
-  /* Primary — deep plum */
+  /* Primary - deep plum */
   --primary: oklch(0.38 0.08 350);
   --primary-foreground: oklch(0.97 0.012 20);
 
-  /* Secondary — soft blush */
+  /* Secondary - soft blush */
   --secondary: oklch(0.93 0.025 15);
   --secondary-foreground: oklch(0.32 0.06 350);
 
@@ -117,7 +117,7 @@
   --sentiment-neutral: oklch(0.72 0.06 80);
   --sentiment-negative: oklch(0.6 0.18 25);
 
-  /* Charts — warm spectrum */
+  /* Charts - warm spectrum */
   --chart-1: oklch(0.55 0.15 10);
   --chart-2: oklch(0.65 0.13 60);
   --chart-3: oklch(0.5 0.1 280);

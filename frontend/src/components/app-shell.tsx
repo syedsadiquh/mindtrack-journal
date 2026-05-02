@@ -39,7 +39,7 @@ export function AppShell({ children }: AppShellProps) {
   const { user, logout, role } = useAuth();
   const router = useRouter();
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const initials = (user?.fullName || user?.username || "·")
+  const initials = (user?.firstName || user?.username || "·")
     .split(" ")
     .map((s) => s[0])
     .join("")
@@ -103,7 +103,7 @@ export function AppShell({ children }: AppShellProps) {
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    {user?.fullName || user?.username}
+                    {user?.firstName || user?.username}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
                     {user?.email}

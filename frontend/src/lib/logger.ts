@@ -1,7 +1,7 @@
 // Lightweight frontend logger.
 // - `debug` only in dev, or when VITE_LOG_LEVEL=debug is set (prod diagnostics).
 // - `info`, `warn`, `error` always emit.
-// - Never log tokens, passwords, or full request/response bodies — only metadata.
+// - Never log tokens, passwords, or full request/response bodies - only metadata.
 // - In prod, point `VITE_LOG_SINK_URL` at a collector (e.g. /api/v1/client-logs) to forward warn+error.
 
 type Level = "debug" | "info" | "warn" | "error";
@@ -61,7 +61,7 @@ function emit(level: Level, msg: string, meta?: Record<string, unknown>) {
         }).catch(() => {});
       }
     } catch {
-      // swallow — logger must never throw
+      // swallow - logger must never throw
     }
   }
 }
