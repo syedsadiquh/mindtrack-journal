@@ -4,11 +4,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.syedsadiquh.coreservice.user.dto.request.LoginRequestDto;
 import com.syedsadiquh.coreservice.user.dto.request.RegisterRequestDto;
 import com.syedsadiquh.coreservice.user.dto.response.TokenResponse;
+import com.syedsadiquh.coreservice.user.entity.User;
 import com.syedsadiquh.coreservice.user.enums.SystemRole;
 import com.syedsadiquh.coreservice.user.exception.UserException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -37,6 +39,10 @@ public class KeycloakService {
 
     @Value("${keycloak.credentials.client-secret}")
     private String clientSecret;
+
+    // Token Caching
+    private String cachedAdminToken;
+    private long tokenExpirationTime;
 
     // LOGIN USER
     public TokenResponse login(LoginRequestDto request) {
@@ -84,7 +90,7 @@ public class KeycloakService {
                 .body(user)
                 .retrieve()
                 .onStatus(status -> status.value() == 409, (req, resp) -> {
-                    throw new UserException("User already exists!");
+                    throw new UserException("User already exists in Identity Provider!");
                 })
                 .toBodilessEntity();
 
@@ -96,71 +102,31 @@ public class KeycloakService {
         String path = location.getPath();
         String userId = path.substring(path.lastIndexOf('/') + 1);
 
-        // Clear any realm-default required actions (e.g. VERIFY_PROFILE) that Keycloak
-        // auto-attaches on creation — otherwise login fails with "Account is not fully set up".
+        // Assign the default USER system role directly using the ID we just parsed
         try {
-            Map<String, Object> clear = new HashMap<>();
-            clear.put("requiredActions", Collections.emptyList());
-            clear.put("emailVerified", true);
-            restClient.put()
-                    .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userId)
-                    .header("Authorization", "Bearer " + adminToken)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(clear)
-                    .retrieve()
-                    .toBodilessEntity();
-
-            // Debug: read back to see what Keycloak kept
-            Map fetched = restClient.get()
-                    .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userId)
-                    .header("Authorization", "Bearer " + adminToken)
-                    .retrieve()
-                    .body(Map.class);
-            log.info("KC user after PUT: requiredActions={}, emailVerified={}, enabled={}",
-                    fetched != null ? fetched.get("requiredActions") : null,
-                    fetched != null ? fetched.get("emailVerified") : null,
-                    fetched != null ? fetched.get("enabled") : null);
+            assignRole(userId, SystemRole.ROLE_USER.toString(), adminToken);
         } catch (Exception e) {
-            log.warn("Failed to clear requiredActions for {}: {}", userId, e.getMessage());
-        }
-
-        // Assign the default USER system role in Keycloak
-        try {
-            assignRole(request.getUsername(), SystemRole.ROLE_USER, adminToken);
-        } catch (Exception e) {
-            log.warn("Failed to assign USER role to {}. They may need manual role assignment. Error: {}",
-                    request.getUsername(), e.getMessage());
+            log.warn("Failed to assign USER role to {}. Error: {}", request.getUsername(), e.getMessage());
         }
 
         return userId;
     }
 
-    private void assignRole(String username, String roleName, String adminToken) {
-        // A. Find the User's ID
-        List<Map> users = restClient.get()
-                .uri(keycloakUrl + "/admin/realms/" + realm + "/users?username=" + username)
-                .header("Authorization", "Bearer " + adminToken)
-                .retrieve()
-                .body(List.class);
-
-        if (users == null || users.isEmpty()) {
-            throw new RuntimeException("User created but not found. This should not happen.");
-        }
-        String userId = (String) users.getFirst().get("id");
-
-        // B. Fetch the Role Details (auto-create if missing so the realm self-heals)
-        Map role;
+    private void assignRole(String userId, String roleName, String adminToken) {
+        // A. Fetch the Role Details (auto-create if missing)
+        Map<String, Object> role;
         try {
             role = restClient.get()
                     .uri(keycloakUrl + "/admin/realms/" + realm + "/roles/" + roleName)
                     .header("Authorization", "Bearer " + adminToken)
                     .retrieve()
-                    .body(Map.class);
+                    .body(new ParameterizedTypeReference<>() {});
         } catch (Exception notFound) {
             log.info("Realm role '{}' missing — creating it.", roleName);
             Map<String, Object> newRole = new HashMap<>();
             newRole.put("name", roleName);
             newRole.put("description", roleName + " realm role (auto-created)");
+
             restClient.post()
                     .uri(keycloakUrl + "/admin/realms/" + realm + "/roles")
                     .header("Authorization", "Bearer " + adminToken)
@@ -168,14 +134,15 @@ public class KeycloakService {
                     .body(newRole)
                     .retrieve()
                     .toBodilessEntity();
+
             role = restClient.get()
                     .uri(keycloakUrl + "/admin/realms/" + realm + "/roles/" + roleName)
                     .header("Authorization", "Bearer " + adminToken)
                     .retrieve()
-                    .body(Map.class);
+                    .body(new ParameterizedTypeReference<>() {});
         }
 
-        // C. Assign the Role
+        // B. Assign the Role directly to the user ID
         restClient.post()
                 .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userId + "/role-mappings/realm")
                 .header("Authorization", "Bearer " + adminToken)
@@ -186,15 +153,58 @@ public class KeycloakService {
     }
 
     public void deleteKeycloakUser(String userId) {
-        String adminToken = getAdminToken();
         restClient.delete()
                 .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userId)
-                .header("Authorization", "Bearer " + adminToken)
+                .header("Authorization", "Bearer " + getAdminToken())
                 .retrieve()
                 .toBodilessEntity();
     }
 
-    private String getAdminToken() {
+    // Safely sync user entity to Keycloak via GET-Modify-PUT pattern
+    public void syncUserToKeycloak(User user) {
+        String adminToken = getAdminToken();
+        String userIdStr = user.getId().toString();
+
+        // 1. Get existing user representation
+        Map<String, Object> kcUser = restClient.get()
+                .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userIdStr)
+                .header("Authorization", "Bearer " + adminToken)
+                .retrieve()
+                .body(new ParameterizedTypeReference<>() {});
+
+        if (kcUser == null) {
+            throw new UserException("Failed to fetch user from Identity Provider for sync.");
+        }
+
+        // 2. Modify mapped fields
+        kcUser.put("username", user.getUsername());
+        kcUser.put("email", user.getEmail());
+        kcUser.put("enabled", user.getActive() != null ? user.getActive() : true);
+
+        if (user.getFirstName() != null && !user.getFirstName().trim().isEmpty()) {
+            kcUser.put("firstName", user.getFirstName());
+        }
+        if (user.getLastName() != null && !user.getLastName().trim().isEmpty()) {
+            kcUser.put("lastName", user.getLastName());
+        }
+
+        // 3. Put full representation back
+        restClient.put()
+                .uri(keycloakUrl + "/admin/realms/" + realm + "/users/" + userIdStr)
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(kcUser)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    // CACHED Admin Token Retrieval
+    private synchronized String getAdminToken() {
+        // Return cached token if valid (with a 10-second safety buffer)
+        if (cachedAdminToken != null && System.currentTimeMillis() < tokenExpirationTime - 10000) {
+            return cachedAdminToken;
+        }
+
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "client_credentials");
         formData.add("client_id", clientId);
@@ -211,7 +221,11 @@ public class KeycloakService {
             throw new RuntimeException("Failed to retrieve admin token from Auth server");
         }
 
-        return response.accessToken();
+        cachedAdminToken = response.accessToken();
+        // Convert expires_in (seconds) to milliseconds and add to current time
+        tokenExpirationTime = System.currentTimeMillis() + (response.expiresIn() * 1000L);
+
+        return cachedAdminToken;
     }
 
     public TokenResponse refreshToken(String refreshToken) {
@@ -239,4 +253,3 @@ public class KeycloakService {
             @JsonProperty("token_type") String tokenType
     ) {}
 }
-

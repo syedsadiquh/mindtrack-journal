@@ -40,13 +40,13 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "MindTrack — A private journal for your inner weather" },
+      { title: "MindTrack - A private journal for your inner weather" },
       {
         name: "description",
         content:
           "A secure, intelligent journal with private sentiment and emotion analytics. Your thoughts, encrypted and yours alone.",
       },
-      { property: "og:title", content: "MindTrack — A private journal" },
+      { property: "og:title", content: "MindTrack - A private journal" },
       {
         property: "og:description",
         content: "Write privately. See your emotional weather. Owned by you.",

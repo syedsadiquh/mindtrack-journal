@@ -1,24 +1,51 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { journalApi, analyticsApi } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { Button } from "@/components/ui/inputs/button";
 import { SentimentPill } from "@/components/sentiment-pill";
 import { formatRelativeDate, formatLongDate } from "@/lib/sentiment";
-import { Plus, Flame, Sparkles, BookOpen, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Flame,
+  Sparkles,
+  BookOpen,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+type JournalSearch = {
+  page?: number;
+};
 
 export const Route = createFileRoute("/app/")({
-  head: () => ({ meta: [{ title: "Journal — MindTrack" }] }),
+  head: () => ({ meta: [{ title: "Journal - MindTrack" }] }),
+  validateSearch: (search: Record<string, unknown>): JournalSearch => {
+    return {
+      page: search.page ? Number(search.page) : undefined,
+    };
+  },
   component: JournalListPage,
 });
 
 function JournalListPage() {
   const { user } = useAuth();
 
+  const { page = 1 } = Route.useSearch();
+  const navigate = useNavigate({ from: Route.id });
+  const pageSize = 10;
+
   const pages = useQuery({
-    queryKey: ["journal", "list"],
-    queryFn: () => journalApi.list({ size: 50, sort: "entryDate,desc" }),
+    queryKey: ["journal", "list", page],
+    queryFn: () =>
+      journalApi.list({
+        page: page - 1,
+        size: pageSize,
+        sort: "entryDate,desc",
+      }),
   });
+
   const streak = useQuery({
     queryKey: ["analytics", "streak"],
     queryFn: async () => {
@@ -28,6 +55,7 @@ function JournalListPage() {
     refetchOnMount: "always",
     staleTime: 0,
   });
+
   const summary = useQuery({
     queryKey: ["analytics", "summary"],
     queryFn: () => analyticsApi.summary(),
@@ -43,6 +71,18 @@ function JournalListPage() {
     return "Good evening";
   })();
 
+  const totalPages = pages.data?.page?.totalPages ?? 1;
+  const isFirstPage = page <= 1;
+  const isLastPage = page >= totalPages;
+
+  const handlePageChange = (newPage: number) => {
+    navigate({
+      search: { page: newPage === 1 ? undefined : newPage },
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div className="space-y-10">
       {/* Hero / greeting */}
@@ -53,9 +93,8 @@ function JournalListPage() {
         <h1 className="mt-2 font-serif text-4xl font-medium leading-tight md:text-5xl">
           {greeting},{" "}
           <span className="text-bloom">
-            {user?.fullName?.split(" ")[0] || user?.username || "friend"}
+            {user?.firstName || user?.username || "friend"}
           </span>
-          .
         </h1>
         <p className="mt-2 max-w-xl text-muted-foreground">
           What is your inner weather today? A few minutes of writing, kept
@@ -75,20 +114,20 @@ function JournalListPage() {
         <StatCard
           icon={Flame}
           label="Current streak"
-          value={streak.data?.currentStreak ?? "—"}
+          value={streak.data?.currentStreak ?? "-"}
           suffix={streak.data?.currentStreak ? "days" : ""}
           loading={streak.isLoading}
         />
         <StatCard
           icon={BookOpen}
           label="Total entries"
-          value={pages.data?.page?.totalElements ?? "—"}
+          value={pages.data?.page?.totalElements ?? "-"}
           loading={pages.isLoading}
         />
         <StatCard
           icon={Sparkles}
           label="Most felt"
-          value={summary.data?.mostFrequentEmotion || "—"}
+          value={summary.data?.mostFrequentEmotion || "-"}
           loading={summary.isLoading}
           capitalize
         />
@@ -104,58 +143,92 @@ function JournalListPage() {
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
           </div>
         ) : pages.data && pages.data.content.length > 0 ? (
-          <div className="space-y-3">
-            {pages.data.content.map((p) => (
-              <Link
-                key={p.id}
-                to="/app/entry/$pageId"
-                params={{ pageId: p.id }}
-                className="group block rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:border-rose/60 hover:shadow-bloom"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-                      <span>{formatRelativeDate(p.entryDate)}</span>
-                      <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
-                      <span>
-                        {p.blockCount} {p.blockCount === 1 ? "block" : "blocks"}
-                      </span>
-                    </div>
-                    <h3 className="font-serif text-xl font-medium leading-snug text-foreground transition-colors group-hover:text-bloom">
-                      {p.title}
-                    </h3>
-                    {p.description && (
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {p.description}
-                      </p>
-                    )}
-                    {p.tags.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {p.tags.map((t) => (
-                          <span
-                            key={t.id}
-                            className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-[11px] text-secondary-foreground"
-                          >
-                            <span
-                              className="h-1.5 w-1.5 rounded-full"
-                              style={{
-                                backgroundColor: t.color || "var(--bloom)",
-                              }}
-                            />
-                            {t.name}
-                          </span>
-                        ))}
+          <div className="space-y-6">
+            <div className="space-y-3">
+              {pages.data.content.map((p) => (
+                <Link
+                  key={p.id}
+                  to="/app/entry/$pageId"
+                  params={{ pageId: p.id }}
+                  className="group block rounded-2xl border border-border bg-card p-5 shadow-soft transition-all hover:-translate-y-0.5 hover:border-rose/60 hover:shadow-bloom"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
+                        <span>{formatRelativeDate(p.entryDate)}</span>
+                        <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+                        <span>
+                          {p.blockCount}{" "}
+                          {p.blockCount === 1 ? "block" : "blocks"}
+                        </span>
                       </div>
-                    )}
+                      <h3 className="font-serif text-xl font-medium leading-snug text-foreground transition-colors group-hover:text-bloom">
+                        {p.title}
+                      </h3>
+                      {p.description && (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                          {p.description}
+                        </p>
+                      )}
+                      {p.tags.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {p.tags.map((t) => (
+                            <span
+                              key={t.id}
+                              className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/60 px-2 py-0.5 text-[11px] text-secondary-foreground"
+                            >
+                              <span
+                                className="h-1.5 w-1.5 rounded-full"
+                                style={{
+                                  backgroundColor: t.color || "var(--bloom)",
+                                }}
+                              />
+                              {t.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <SentimentPill
+                      label={p.sentimentLabel}
+                      emotion={p.dominantEmotion}
+                      score={p.sentimentScore}
+                    />
                   </div>
-                  <SentimentPill
-                    label={p.sentimentLabel}
-                    emotion={p.dominantEmotion}
-                    score={p.sentimentScore}
-                  />
-                </div>
-              </Link>
-            ))}
+                </Link>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={isFirstPage}
+                  className="rounded-full shadow-sm"
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+                </Button>
+
+                <span className="text-sm text-muted-foreground">
+                  Page{" "}
+                  <span className="font-medium text-foreground">{page}</span> of{" "}
+                  {totalPages}
+                </span>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={isLastPage}
+                  className="rounded-full shadow-sm"
+                >
+                  Next <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         ) : (
           <EmptyState />

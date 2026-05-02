@@ -10,9 +10,11 @@ import com.syedsadiquh.coreservice.user.entity.User;
 import com.syedsadiquh.coreservice.user.exception.UserException;
 import com.syedsadiquh.coreservice.user.repository.TenantRepository;
 import com.syedsadiquh.coreservice.user.repository.UserRepository;
+import com.syedsadiquh.coreservice.user.utils.KeycloakService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
@@ -23,6 +25,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final TenantRepository tenantRepository;
+    private final KeycloakService keycloakService;
 
     public BaseResponse<UserDetailsResponseDto> getUserDetails(UUID userId) {
         try {
@@ -30,33 +33,10 @@ public class UserServiceImpl implements UserService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new UserException("User not found"));
 
-            UserDetailsResponseDto responseDto = UserDetailsResponseDto.builder()
-                    .id(user.getId())
-                    .username(user.getUsername())
-                    .fullName(user.getFullName())
-                    .email(user.getEmail())
-                    .defaultTenant(
-                            TenantResponseDto.builder()
-                                    .tenantId(user.getDefaultTenant().getId())
-                                    .tenantName(user.getDefaultTenant().getName())
-                                    .tenantSlug(user.getDefaultTenant().getSlug())
-                                    .planTier(user.getDefaultTenant().getPlan().getTier())
-                                    .planDisplayName(user.getDefaultTenant().getPlan().getDisplayName())
-                                    .active(user.getDefaultTenant().getActive())
-                                    .build()
-                    )
-                    .active(user.getActive())
-                    .avatarUrl(user.getAvatarUrl())
-                    .countryCode(user.getCountryCode())
-                    .phone(user.getPhone())
-                    .timezone(user.getTimezone())
-                    .address(user.getAddress())
-                    .build();
-
             return BaseResponse.<UserDetailsResponseDto>builder()
                     .success(true)
                     .message("User details retrieved successfully")
-                    .data(responseDto)
+                    .data(mapToDto(user))
                     .build();
         } catch (Exception e) {
             log.error("Unable to get user details for userId {}. ERROR: {}", userId, e.getMessage());
@@ -64,70 +44,70 @@ public class UserServiceImpl implements UserService {
         }
     }
 
-    public BaseResponse<UserDetailsResponseDto> updateUserDetails(UUID uuid, UpdateUserRequestDto updateUserRequestDto) {
+    @Transactional
+    public BaseResponse<UserDetailsResponseDto> updateUserDetails(UUID uuid, UpdateUserRequestDto dto) {
         try {
             log.info("Updating current user details for userId {}", uuid);
             User user = userRepository.findById(uuid)
                     .orElseThrow(() -> new UserException("User not found"));
 
-            // Update fields
-            if (updateUserRequestDto.getFullName() != null) user.setFullName(updateUserRequestDto.getFullName());
-            if (updateUserRequestDto.getUsername() != null) {
-                User existingUser = userRepository.findByUsername(updateUserRequestDto.getUsername()).orElse(null);
+            boolean requiresKeycloakSync = false;
+
+            // Apply updates locally
+            if (dto.getFirstName() != null) {
+                user.setFirstName(dto.getFirstName());
+                requiresKeycloakSync = true;
+            }
+            if (dto.getLastName() != null) {
+                user.setLastName(dto.getLastName());
+                requiresKeycloakSync = true;
+            }
+            if (dto.getActive() != null) {
+                user.setActive(dto.getActive());
+                requiresKeycloakSync = true;
+            }
+            if (dto.getUsername() != null) {
+                User existingUser = userRepository.findByUsername(dto.getUsername()).orElse(null);
                 if (existingUser != null && !existingUser.getId().equals(uuid)) {
                     throw new UserException("Username already taken. Please choose a different username.");
                 }
-                user.setUsername(updateUserRequestDto.getUsername());
+                user.setUsername(dto.getUsername());
+                requiresKeycloakSync = true;
             }
-            if (updateUserRequestDto.getEmail() != null) {
-                User existingUser = userRepository.findByEmail(updateUserRequestDto.getEmail());
+            if (dto.getEmail() != null) {
+                User existingUser = userRepository.findByEmail(dto.getEmail());
                 if (existingUser != null && !existingUser.getId().equals(uuid)) {
-                    throw new UserException("Email already linked to another account. Please use a different email.");
+                    throw new UserException("Email already linked to another account.");
                 }
-                user.setEmail(updateUserRequestDto.getEmail());
+                user.setEmail(dto.getEmail());
+                requiresKeycloakSync = true;
             }
-            if (updateUserRequestDto.getAvatarUrl() != null) user.setAvatarUrl(updateUserRequestDto.getAvatarUrl());
-            if (updateUserRequestDto.getCountryCode() != null) user.setCountryCode(updateUserRequestDto.getCountryCode());
-            if (updateUserRequestDto.getPhone() != null) user.setPhone(updateUserRequestDto.getPhone());
-            if (updateUserRequestDto.getTimezone() != null) user.setTimezone(updateUserRequestDto.getTimezone());
-            if (updateUserRequestDto.getAddress() != null) user.setAddress(updateUserRequestDto.getAddress());
-            if (updateUserRequestDto.getActive() != null) user.setActive(updateUserRequestDto.getActive());
-            // todo: check if the user is allowed to join the new tenant using membership
-            if (updateUserRequestDto.getDefaultTenant() != null) {
-                Tenant newTenant = tenantRepository.findById(UUID.fromString(updateUserRequestDto.getDefaultTenant()))
+
+            // Unmapped Keycloak fields
+            if (dto.getAvatarUrl() != null) user.setAvatarUrl(dto.getAvatarUrl());
+            if (dto.getCountryCode() != null) user.setCountryCode(dto.getCountryCode());
+            if (dto.getPhone() != null) user.setPhone(dto.getPhone());
+            if (dto.getTimezone() != null) user.setTimezone(dto.getTimezone());
+            if (dto.getAddress() != null) user.setAddress(dto.getAddress());
+
+            // Tenant updates
+            if (dto.getDefaultTenant() != null) {
+                Tenant newTenant = tenantRepository.findById(UUID.fromString(dto.getDefaultTenant()))
                         .orElseThrow(() -> new UserException("Tenant not found"));
                 user.setDefaultTenant(newTenant);
             }
 
-            User updatedUser = userRepository.save(user);
+            // Sync structural identity changes to Keycloak BEFORE saving to DB
+            if (requiresKeycloakSync) {
+                keycloakService.syncUserToKeycloak(user);
+            }
 
-            UserDetailsResponseDto responseDto = UserDetailsResponseDto.builder()
-                    .id(updatedUser.getId())
-                    .username(updatedUser.getUsername())
-                    .fullName(updatedUser.getFullName())
-                    .email(updatedUser.getEmail())
-                    .defaultTenant(
-                            TenantResponseDto.builder()
-                                    .tenantId(updatedUser.getDefaultTenant().getId())
-                                    .tenantName(updatedUser.getDefaultTenant().getName())
-                                    .tenantSlug(updatedUser.getDefaultTenant().getSlug())
-                                    .planTier(updatedUser.getDefaultTenant().getPlan().getTier())
-                                    .planDisplayName(updatedUser.getDefaultTenant().getPlan().getDisplayName())
-                                    .active(updatedUser.getDefaultTenant().getActive())
-                                    .build()
-                    )
-                    .active(updatedUser.getActive())
-                    .avatarUrl(updatedUser.getAvatarUrl())
-                    .countryCode(updatedUser.getCountryCode())
-                    .phone(updatedUser.getPhone())
-                    .timezone(updatedUser.getTimezone())
-                    .address(updatedUser.getAddress())
-                    .build();
+            User updatedUser = userRepository.save(user);
 
             return BaseResponse.<UserDetailsResponseDto>builder()
                     .success(true)
                     .message("User details updated successfully")
-                    .data(responseDto)
+                    .data(mapToDto(updatedUser))
                     .build();
         } catch (Exception e) {
             log.error("Unable to update user details for userId {}. ERROR: {}", uuid, e.getMessage());
@@ -156,4 +136,29 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    private UserDetailsResponseDto mapToDto(User user) {
+        return UserDetailsResponseDto.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .email(user.getEmail())
+                .defaultTenant(
+                        TenantResponseDto.builder()
+                                .tenantId(user.getDefaultTenant().getId())
+                                .tenantName(user.getDefaultTenant().getName())
+                                .tenantSlug(user.getDefaultTenant().getSlug())
+                                .planTier(user.getDefaultTenant().getPlan().getTier())
+                                .planDisplayName(user.getDefaultTenant().getPlan().getDisplayName())
+                                .active(user.getDefaultTenant().getActive())
+                                .build()
+                )
+                .active(user.getActive())
+                .avatarUrl(user.getAvatarUrl())
+                .countryCode(user.getCountryCode())
+                .phone(user.getPhone())
+                .timezone(user.getTimezone())
+                .address(user.getAddress())
+                .build();
+    }
 }

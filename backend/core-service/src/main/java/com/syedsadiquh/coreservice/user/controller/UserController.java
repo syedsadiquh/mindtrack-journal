@@ -31,7 +31,7 @@ public class UserController {
     @PatchMapping("/me")
     public ResponseEntity<BaseResponse<UserDetailsResponseDto>> updateUserDetails(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestBody UpdateUserRequestDto updateUserRequestDto
+            @Valid @RequestBody UpdateUserRequestDto updateUserRequestDto
     ) {
         return ResponseEntity.ok(userService.updateUserDetails(UUID.fromString(jwt.getSubject()), updateUserRequestDto));
     }

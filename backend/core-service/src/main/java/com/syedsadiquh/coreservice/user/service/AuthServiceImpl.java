@@ -106,7 +106,8 @@ public class AuthServiceImpl implements AuthService {
                 .id(UUID.fromString(keycloakId))
                 .email(email)
                 .username(email)
-                .fullName(firstName + " " + lastName)
+                .firstName(firstName)
+                .lastName(lastName)
                 .defaultTenant(personalTenant)
                 .active(true)
                 .createdBy("SYSTEM")
@@ -170,7 +171,8 @@ public class AuthServiceImpl implements AuthService {
                     .id(userId)
                     .defaultTenant(savedTenant)
                     .username(request.getUsername())
-                    .fullName(request.getFirstName() + " " + request.getLastName())
+                    .firstName(request.getFirstName())
+                    .lastName(request.getLastName())
                     .email(request.getEmail())
                     .active(true)
                     .createdBy("USER")
@@ -197,7 +199,7 @@ public class AuthServiceImpl implements AuthService {
 
             CompletableFuture.runAsync(() -> {
                 log.info("Handling onboarding mail request for: {} ", user.getEmail());
-                notificationProducerService.sendOnboardingEmail(user.getEmail(), user.getFullName());
+                notificationProducerService.sendOnboardingEmail(user.getEmail(), user.getFirstName());
             }, virtualExecutor);
 
             return new BaseResponse<>(true, "User Registered Successfully", responseDto);

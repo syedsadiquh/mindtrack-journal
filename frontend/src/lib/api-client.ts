@@ -133,7 +133,7 @@ async function rawRequest<T>(
       url,
       error: describeError(e),
     });
-    throw new ApiError("Network error — check connection or CORS/config", 0, e);
+    throw new ApiError("Network error - check connection or CORS/config", 0, e);
   }
 
   const elapsedMs = Math.round(performance.now() - started);
@@ -263,7 +263,7 @@ export async function api<T>(
   return json as T;
 }
 
-// Auth endpoints (raw response — no envelope)
+// Auth endpoints (raw response - no envelope)
 export async function loginRaw(body: {
   username: string;
   password: string;
@@ -278,6 +278,6 @@ export async function logoutRaw(): Promise<void> {
       credentials: "include",
     });
   } catch {
-    // ignore — still clear local state
+    // ignore - still clear local state
   }
 }

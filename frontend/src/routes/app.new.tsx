@@ -1,4 +1,9 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  useNavigate,
+  useRouter,
+} from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { journalApi, analyticsApi } from "@/lib/api";
@@ -24,7 +29,7 @@ import { todayISO } from "@/lib/sentiment";
 import type { BlockType, CreateJournalPageRequest } from "@/lib/types";
 
 export const Route = createFileRoute("/app/new")({
-  head: () => ({ meta: [{ title: "New entry — MindTrack" }] }),
+  head: () => ({ meta: [{ title: "New entry - MindTrack" }] }),
   component: NewEntryPage,
 });
 
@@ -51,6 +56,7 @@ function newId() {
 
 function NewEntryPage() {
   const navigate = useNavigate();
+  const router = useRouter();
   const qc = useQueryClient();
   const { user } = useAuth();
   const tenantId = user?.defaultTenant?.tenantId;
@@ -137,14 +143,12 @@ function NewEntryPage() {
     <div className="mx-auto max-w-3xl space-y-8 animate-bloom-in">
       <div>
         <Button
-          asChild
           variant="ghost"
           size="sm"
           className="mb-3 -ml-2 text-muted-foreground"
+          onClick={() => router.history.back()}
         >
-          <Link to="/app">
-            <ArrowLeft className="mr-1 h-4 w-4" /> Back to journal
-          </Link>
+          <ArrowLeft className="mr-1 h-4 w-4" /> Back to journal
         </Button>
         <p className="text-xs uppercase tracking-[0.2em] text-bloom">
           A new entry

@@ -15,7 +15,7 @@ interface LoginSearch {
 }
 
 export const Route = createFileRoute("/login")({
-  head: () => ({ meta: [{ title: "Sign in — MindTrack" }] }),
+  head: () => ({ meta: [{ title: "Sign in - MindTrack" }] }),
   validateSearch: (s: Record<string, unknown>): LoginSearch => ({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
   }),

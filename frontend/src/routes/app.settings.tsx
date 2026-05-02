@@ -20,9 +20,10 @@ import {
 import { ApiError } from "@/lib/api-client";
 import { toast } from "sonner";
 import { Loader2, Trash2 } from "lucide-react";
+import { isValidEmail, isValidUsername } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/settings")({
-  head: () => ({ meta: [{ title: "Settings — MindTrack" }] }),
+  head: () => ({ meta: [{ title: "Settings - MindTrack" }] }),
   component: SettingsPage,
 });
 
@@ -36,7 +37,8 @@ function SettingsPage() {
     initialData: user ?? undefined,
   });
   const [form, setForm] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     username: "",
     email: "",
     phone: "",
@@ -47,7 +49,8 @@ function SettingsPage() {
   useEffect(() => {
     if (me.data) {
       setForm({
-        fullName: me.data.fullName ?? "",
+        firstName: me.data.firstName ?? "",
+        lastName: me.data.lastName ?? "",
         username: me.data.username ?? "",
         email: me.data.email ?? "",
         phone: me.data.phone ?? "",
@@ -58,7 +61,18 @@ function SettingsPage() {
   }, [me.data]);
 
   const update = useMutation({
-    mutationFn: () => userApi.update(form),
+    mutationFn: async () => {
+      if (!isValidUsername(form.username)) {
+        throw new ApiError(
+          "Username must be 3-30 chars: lowercase letters, numbers, dot, underscore or hyphen.",
+          400,
+        );
+      }
+      if (!isValidEmail(form.email)) {
+        throw new ApiError("Provided Email contains invalid characters", 400);
+      }
+      return await userApi.update(form);
+    },
     onSuccess: () => {
       toast.success("Profile updated.");
       qc.invalidateQueries({ queryKey: ["user", "me"] });
@@ -99,10 +113,16 @@ function SettingsPage() {
         <h2 className="font-serif text-xl font-medium">Profile</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Field
-            label="Full name"
-            id="fullName"
-            value={form.fullName}
-            onChange={set("fullName")}
+            label="First name"
+            id="firstName"
+            value={form.firstName}
+            onChange={set("firstName")}
+          />
+          <Field
+            label="Last name"
+            id="lastName"
+            value={form.lastName}
+            onChange={set("lastName")}
           />
           <Field
             label="Username"

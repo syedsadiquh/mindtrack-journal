@@ -68,7 +68,7 @@ function AdminShell() {
           </nav>
           <div className="flex items-center gap-2">
             <span className="hidden text-sm text-muted-foreground md:inline">
-              {user?.fullName || user?.username}
+              {user?.firstName || user?.username}
             </span>
             <Button asChild variant="ghost" size="sm" className="rounded-full">
               <Link to="/app">
