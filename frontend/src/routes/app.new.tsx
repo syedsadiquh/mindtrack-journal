@@ -3,6 +3,7 @@ import {
   Link,
   useNavigate,
   useRouter,
+  useBlocker,
 } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -92,6 +93,19 @@ function NewEntryPage() {
   const dragId = useRef<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
+  const isRoutingRef = useRef(false);
+
+  const isDirty =
+    title.trim().length > 0 ||
+    description.trim().length > 0 ||
+    blocks.some((b) => b.text.trim().length > 0 || !!b.url);
+
+  // Prevent accidental internal navigation & external page refreshes
+  // Show the discard modal on every attempted navigation (unless routing intentionally)
+  const blocker = useBlocker({
+    condition: () => !isRoutingRef.current,
+  });
+
   const create = useMutation({
     mutationFn: async () => {
       if (!tenantId) throw new Error("No tenant available");
@@ -118,6 +132,9 @@ function NewEntryPage() {
       };
       return journalApi.create(payload);
     },
+    onMutate: () => {
+      isRoutingRef.current = true;
+    },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["journal"] });
       analyticsApi
@@ -130,6 +147,7 @@ function NewEntryPage() {
       navigate({ to: "/app/entry/$pageId", params: { pageId: data.id } });
     },
     onError: (err) => {
+      isRoutingRef.current = false;
       const msg =
         err instanceof ApiError ? err.message : err.message || "Could not save";
       toast.error(msg);
@@ -146,7 +164,10 @@ function NewEntryPage() {
           variant="ghost"
           size="sm"
           className="mb-3 -ml-2 text-muted-foreground"
-          onClick={() => router.history.back()}
+          onClick={() => {
+            isRoutingRef.current = true;
+            navigate({ to: "/app" });
+          }}
         >
           <ArrowLeft className="mr-1 h-4 w-4" /> Back to journal
         </Button>
@@ -269,8 +290,14 @@ function NewEntryPage() {
       </div>
 
       <div className="flex items-center justify-end gap-3 pb-10">
-        <Button asChild variant="ghost">
-          <Link to="/app">Discard</Link>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            isRoutingRef.current = true;
+            navigate({ to: "/app" });
+          }}
+        >
+          Discard
         </Button>
         <Button
           disabled={!canSubmit || create.isPending}
@@ -284,6 +311,44 @@ function NewEntryPage() {
           )}
         </Button>
       </div>
+
+      {/* Custom Navigation Interception Modal */}
+      {blocker.status === "blocked" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-8 animate-in zoom-in-95 duration-200">
+            <h2 className="font-serif text-2xl font-medium">
+              Discard unsaved writing?
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              You have thoughts written down that haven't been saved yet. If you
+              leave this page, your entry will be lost forever.
+            </p>
+            <div className="mt-8 flex items-center justify-end gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => blocker.reset()} // Cancels the navigation
+              >
+                Keep writing
+              </Button>
+              <Button
+                variant="destructive"
+                className="rounded-full shadow-none"
+                onClick={() => {
+                  isRoutingRef.current = true;
+                  try {
+                    blocker.proceed();
+                  } catch (_) {
+                    /* ignore */
+                  }
+                  navigate({ to: "/app" });
+                }} // Allows the navigation
+              >
+                Discard entry
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -342,7 +407,7 @@ function BlockEditor({
           setIsDragging(false);
           onDragEnd();
         }}
-        className="absolute left-1.5 top-1/2 -translate-y-1/2 cursor-grab rounded p-1 text-muted-foreground/40 opacity-0 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100 active:cursor-grabbing"
+        className="absolute left-1.5 top-1/2 -translate-y-1/2 cursor-grab rounded p-1 text-muted-foreground/40 transition-opacity hover:bg-muted hover:text-foreground active:cursor-grabbing opacity-100 md:opacity-0 md:group-hover:opacity-100"
         aria-label="Drag to reorder"
       >
         <GripVertical className="h-4 w-4" />
