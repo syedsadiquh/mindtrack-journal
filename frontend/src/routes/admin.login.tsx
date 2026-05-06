@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/inputs/input";
 import { Label } from "@/components/ui/inputs/label";
 import { ApiError } from "@/lib/api-client";
 import { toast } from "sonner";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, ShieldCheck } from "lucide-react";
 import { AuthShell } from "./login";
 
 export const Route = createFileRoute("/admin/login")({
@@ -20,6 +20,13 @@ function AdminLoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const onPasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.form?.requestSubmit();
+    }
+  };
 
   useEffect(() => {
     if (
@@ -85,15 +92,32 @@ function AdminLoginPage() {
           >
             Password
           </Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete="current-password"
-            className="h-11 rounded-xl border-border bg-card/60"
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={onPasswordKeyDown}
+              required
+              autoComplete="current-password"
+              className="h-11 rounded-xl border-border bg-card/60 pr-11"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2">
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </button>
+            </div>
+          </div>
         </div>
         <Button
           type="submit"

@@ -7,7 +7,7 @@ import { ApiError } from "@/lib/api-client";
 import { authApi } from "@/lib/api";
 import { useAuth } from "@/lib/use-auth";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { AuthShell } from "./login";
 import { isValidUsername } from "@/lib/utils";
 
@@ -27,6 +27,13 @@ function RegisterPage() {
     password: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const onPasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.form?.requestSubmit();
+    }
+  };
 
   const set =
     <K extends keyof typeof form>(k: K) =>
@@ -108,10 +115,25 @@ function RegisterPage() {
         <FieldInline
           label="Password"
           id="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={form.password}
           onChange={set("password")}
           required
+          onKeyDown={onPasswordKeyDown}
+          rightAdornment={
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground"
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          }
         />
         <Button
           type="submit"
@@ -145,6 +167,8 @@ interface InlineProps {
   onChange: (v: string) => void;
   type?: string;
   required?: boolean;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
+  rightAdornment?: React.ReactNode;
 }
 
 function FieldInline({
@@ -154,6 +178,8 @@ function FieldInline({
   onChange,
   type = "text",
   required,
+  onKeyDown,
+  rightAdornment,
 }: InlineProps) {
   return (
     <div className="space-y-1.5">
@@ -164,14 +190,24 @@ function FieldInline({
         {label}
         {required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
-      <Input
-        id={id}
-        type={type}
-        value={value}
-        required={required}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-11 rounded-xl border-border bg-card/60"
-      />
+      <div className="relative">
+        <Input
+          id={id}
+          type={type}
+          value={value}
+          required={required}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          className={`h-11 rounded-xl border-border bg-card/60 ${
+            rightAdornment ? "pr-11" : ""
+          }`}
+        />
+        {rightAdornment ? (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            {rightAdornment}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

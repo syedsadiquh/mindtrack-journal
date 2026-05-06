@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/inputs/label";
 import { ApiError } from "@/lib/api-client";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 interface LoginSearch {
   redirect?: string;
@@ -29,6 +29,13 @@ function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const onPasswordKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.currentTarget.form?.requestSubmit();
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -76,11 +83,26 @@ function LoginPage() {
         <Field
           label="Password"
           id="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={password}
           onChange={setPassword}
           autoComplete="current-password"
           required
+          onKeyDown={onPasswordKeyDown}
+          rightAdornment={
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground"
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          }
         />
         <Button
           type="submit"
@@ -115,6 +137,8 @@ interface FieldProps {
   type?: string;
   required?: boolean;
   autoComplete?: string;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
+  rightAdornment?: React.ReactNode;
 }
 
 function Field({
@@ -125,6 +149,8 @@ function Field({
   type = "text",
   required,
   autoComplete,
+  onKeyDown,
+  rightAdornment,
 }: FieldProps) {
   return (
     <div className="space-y-1.5">
@@ -135,15 +161,25 @@ function Field({
         {label}
         {required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
-      <Input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        autoComplete={autoComplete}
-        className="h-11 rounded-xl border-border bg-card/60"
-      />
+      <div className="relative">
+        <Input
+          id={id}
+          type={type}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
+          required={required}
+          autoComplete={autoComplete}
+          className={`h-11 rounded-xl border-border bg-card/60 ${
+            rightAdornment ? "pr-11" : ""
+          }`}
+        />
+        {rightAdornment ? (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+            {rightAdornment}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
