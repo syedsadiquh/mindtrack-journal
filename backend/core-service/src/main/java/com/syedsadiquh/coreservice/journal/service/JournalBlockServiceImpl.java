@@ -38,6 +38,8 @@ public class JournalBlockServiceImpl implements JournalBlockService {
     private final BlockVersionRepository blockVersionRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final SanitizerUtil sanitizerUtil;
+    private final JournalEncryptionService encryptionService;
+    private final JournalBlockMapper blockMapper;
 
     @Transactional("journalTransactionManager")
     @Override
@@ -65,8 +67,8 @@ public class JournalBlockServiceImpl implements JournalBlockService {
                     .parentBlock(parentBlock)
                     .type(request.getType())
                     .orderIndex(orderIndex)
-                    .content(sanitizedContent)
-                    .metadata(sanitizedMetadata)
+                    .content(encryptionService.encryptMap(sanitizedContent))
+                    .metadata(encryptionService.encryptMap(sanitizedMetadata))
                     .createdBy(userId.toString())
                     .createdAt(LocalDateTime.now())
                     .deleted(false)
@@ -77,7 +79,7 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             publishPageAnalysisIfText(pageId, saved.getType(), sanitizedContent);
 
             log.info("Block added to page {}: {} (type: {})", pageId, saved.getId(), saved.getType());
-            return JournalBlockMapper.toResponse(saved);
+            return blockMapper.toResponse(saved);
         } catch (JournalNotFoundException e) {
             throw e;
         } catch (Exception e) {
@@ -96,7 +98,7 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             JournalBlock block = blockRepository.findByIdAndPageIdAndDeletedFalse(blockId, pageId)
                     .orElseThrow(() -> new JournalNotFoundException("Block not found: " + blockId));
 
-            // Save version snapshot before updating
+            // Version snapshot stores the current encrypted content from DB as-is
             int versionNumber = blockVersionRepository.countByBlockId(blockId) + 1;
             BlockVersion version = BlockVersion.builder()
                     .block(block)
@@ -109,17 +111,18 @@ public class JournalBlockServiceImpl implements JournalBlockService {
                     .build();
             blockVersionRepository.save(version);
 
+            Map<String, Object> sanitizedContent = null;
             boolean contentChanged = false;
             if (request.getType() != null) block.setType(request.getType());
             if (request.getOrderIndex() != null) block.setOrderIndex(request.getOrderIndex());
             if (request.getContent() != null) {
-                Map<String, Object> sanitizedContent = sanitizerUtil.sanitizeMap(request.getContent());
-                block.setContent(sanitizedContent);
+                sanitizedContent = sanitizerUtil.sanitizeMap(request.getContent());
+                block.setContent(encryptionService.encryptMap(sanitizedContent));
                 contentChanged = true;
             }
             if (request.getMetadata() != null) {
                 Map<String, Object> sanitizedMetadata = sanitizerUtil.sanitizeMap(request.getMetadata());
-                block.setMetadata(sanitizedMetadata);
+                block.setMetadata(encryptionService.encryptMap(sanitizedMetadata));
             }
 
             block.setUpdatedBy(userId.toString());
@@ -128,11 +131,11 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             JournalBlock updated = blockRepository.save(block);
 
             if (contentChanged) {
-                publishPageAnalysisIfText(pageId, updated.getType(), updated.getContent());
+                publishPageAnalysisIfText(pageId, updated.getType(), sanitizedContent);
             }
 
             log.info("Block updated: {} for page: {}", blockId, pageId);
-            return JournalBlockMapper.toResponse(updated);
+            return blockMapper.toResponse(updated);
         } catch (JournalNotFoundException e) {
             throw e;
         } catch (Exception e) {
@@ -156,7 +159,7 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             block.setDeletedAt(LocalDateTime.now());
             blockRepository.save(block);
 
-            publishPageAnalysisIfText(pageId, block.getType(), block.getContent());
+            publishPageAnalysisIfText(pageId, block.getType(), encryptionService.decryptMap(block.getContent()));
 
             log.info("Block soft-deleted: {} from page: {}", blockId, pageId);
         } catch (JournalNotFoundException e) {
@@ -220,7 +223,7 @@ public class JournalBlockServiceImpl implements JournalBlockService {
             log.info("Blocks reordered: {} for page: {}", orderedIds, pageId);
             return saved.stream()
                     .sorted(Comparator.comparingInt(JournalBlock::getOrderIndex))
-                    .map(JournalBlockMapper::toResponse)
+                    .map(blockMapper::toResponse)
                     .toList();
         } catch (JournalNotFoundException | JournalBadRequestException e) {
             throw e;
@@ -232,8 +235,8 @@ public class JournalBlockServiceImpl implements JournalBlockService {
 
     private void publishPageAnalysisIfText(UUID pageId,
                                            com.syedsadiquh.coreservice.journal.enums.BlockType type,
-                                           Map<String, Object> content) {
-        if (BlockTextUtil.ANALYSABLE_TYPES.contains(type) && BlockTextUtil.hasText(content)) {
+                                           Map<String, Object> plaintextContent) {
+        if (BlockTextUtil.ANALYSABLE_TYPES.contains(type) && BlockTextUtil.hasText(plaintextContent)) {
             eventPublisher.publishEvent(new PageAnalysisEvent(pageId));
         }
     }

@@ -19,6 +19,7 @@ public class SentimentAnalysisListener {
 
     private final JournalPageRepository pageRepository;
     private final SentimentAnalysisProducer sentimentAnalysisProducer;
+    private final JournalEncryptionService encryptionService;
 
     @ApplicationModuleListener
     @Async
@@ -27,7 +28,7 @@ public class SentimentAnalysisListener {
         log.info("Received page analysis event for page: {}", event.pageId());
 
         String aggregatedText = pageRepository.findById(event.pageId())
-                .map(BlockTextUtil::aggregateText)
+                .map(page -> BlockTextUtil.aggregateText(page, encryptionService))
                 .orElse(null);
 
         if (aggregatedText == null || aggregatedText.isBlank()) {

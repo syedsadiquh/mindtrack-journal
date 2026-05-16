@@ -2,22 +2,26 @@ package com.syedsadiquh.coreservice.journal.util;
 
 import com.syedsadiquh.coreservice.journal.dto.response.JournalBlockResponse;
 import com.syedsadiquh.coreservice.journal.entity.JournalBlock;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
+import com.syedsadiquh.coreservice.journal.service.JournalEncryptionService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
 import java.util.List;
 
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public final class JournalBlockMapper {
+@Component
+@RequiredArgsConstructor
+public class JournalBlockMapper {
 
-    public static JournalBlockResponse toResponse(JournalBlock block) {
+    private final JournalEncryptionService encryptionService;
+
+    public JournalBlockResponse toResponse(JournalBlock block) {
         List<JournalBlockResponse> children = null;
         if (block.getChildBlocks() != null && !block.getChildBlocks().isEmpty()) {
             children = block.getChildBlocks().stream()
                     .filter(b -> !b.getDeleted())
                     .sorted(Comparator.comparingInt(JournalBlock::getOrderIndex))
-                    .map(JournalBlockMapper::toResponse)
+                    .map(this::toResponse)
                     .toList();
         }
 
@@ -26,8 +30,8 @@ public final class JournalBlockMapper {
                 .parentBlockId(block.getParentBlock() != null ? block.getParentBlock().getId() : null)
                 .type(block.getType())
                 .orderIndex(block.getOrderIndex())
-                .content(block.getContent())
-                .metadata(block.getMetadata())
+                .content(encryptionService.decryptMap(block.getContent()))
+                .metadata(encryptionService.decryptMap(block.getMetadata()))
                 .childBlocks(children)
                 .createdAt(block.getCreatedAt())
                 .updatedAt(block.getUpdatedAt())

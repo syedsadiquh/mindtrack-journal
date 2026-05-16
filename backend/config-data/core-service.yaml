@@ -74,6 +74,10 @@ keycloak:
   credentials:
     client-secret: ${KEYCLOAK_USER_CLIENT_SECRET:user-service-secret}
 
+journal:
+  encryption:
+    key: ${JOURNAL_ENCRYPTION_KEY:t/2V1vkio/Jg7QZBKB0lgL5Vjq4ZdkvxpcyRx2mBA5c=}
+
 management:
   endpoints:
     web:

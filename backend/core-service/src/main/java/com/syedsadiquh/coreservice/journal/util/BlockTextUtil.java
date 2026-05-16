@@ -3,12 +3,14 @@ package com.syedsadiquh.coreservice.journal.util;
 import com.syedsadiquh.coreservice.journal.entity.JournalBlock;
 import com.syedsadiquh.coreservice.journal.entity.JournalPage;
 import com.syedsadiquh.coreservice.journal.enums.BlockType;
+import com.syedsadiquh.coreservice.journal.service.JournalEncryptionService;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -31,11 +33,10 @@ public final class BlockTextUtil {
     }
 
     /**
-     * Aggregates non-deleted narrative blocks (TEXT, HEADING, QUOTE) from a page
-     * into a single string, ordered by block index, separated by newlines.
-     * Media/structural blocks are skipped. Returns empty string if no text.
+     * Aggregates non-deleted narrative blocks from a page into a single string.
+     * Block content is decrypted before extraction.
      */
-    public static String aggregateText(JournalPage page) {
+    public static String aggregateText(JournalPage page, JournalEncryptionService encryptionService) {
         if (page.getBlocks() == null || page.getBlocks().isEmpty()) {
             return "";
         }
@@ -43,8 +44,11 @@ public final class BlockTextUtil {
                 .filter(block -> !block.getDeleted())
                 .filter(block -> ANALYSABLE_TYPES.contains(block.getType()))
                 .sorted(Comparator.comparingInt(JournalBlock::getOrderIndex))
-                .filter(block -> hasText(block.getContent()))
-                .map(block -> block.getContent().get("text").toString())
+                .map(block -> {
+                    Map<String, Object> content = encryptionService.decryptMap(block.getContent());
+                    return hasText(content) ? content.get("text").toString() : null;
+                })
+                .filter(Objects::nonNull)
                 .collect(Collectors.joining("\n"));
     }
 }

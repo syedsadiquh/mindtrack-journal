@@ -46,6 +46,8 @@ public class JournalPageServiceImpl implements JournalPageService {
     private final SanitizerUtil sanitizerUtil;
     private final SentimentAnalyzerClient sentimentAnalyzerClient;
     private final SentimentAnalysisService sentimentAnalysisService;
+    private final JournalEncryptionService encryptionService;
+    private final JournalBlockMapper blockMapper;
 
     @Transactional("journalTransactionManager")
     @Override
@@ -55,8 +57,8 @@ public class JournalPageServiceImpl implements JournalPageService {
             JournalPage page = JournalPage.builder()
                     .tenantId(request.getTenantId())
                     .userId(userId)
-                    .title(request.getTitle())
-                    .description(request.getDescription())
+                    .title(encryptionService.encryptString(request.getTitle()))
+                    .description(encryptionService.encryptString(request.getDescription()))
                     .coverImageUrl(request.getCoverImageUrl())
                     .entryDate(request.getEntryDate())
                     .isPrivate(request.getIsPrivate() != null ? request.getIsPrivate() : true)
@@ -89,23 +91,23 @@ public class JournalPageServiceImpl implements JournalPageService {
                     Map<String, Object> safeContent = sanitizerUtil.sanitizeMap(blockReq.getContent());
                     Map<String, Object> safeMetadata = sanitizerUtil.sanitizeMap(blockReq.getMetadata());
 
+                    if (BlockTextUtil.ANALYSABLE_TYPES.contains(blockReq.getType())
+                            && BlockTextUtil.hasText(safeContent)) {
+                        hasTextContent = true;
+                    }
+
                     JournalBlock block = JournalBlock.builder()
                             .tenantId(request.getTenantId())
                             .page(saved)
                             .type(blockReq.getType())
                             .orderIndex(blockReq.getOrderIndex() != null ? blockReq.getOrderIndex() : i)
-                            .content(safeContent)
-                            .metadata(safeMetadata)
+                            .content(encryptionService.encryptMap(safeContent))
+                            .metadata(encryptionService.encryptMap(safeMetadata))
                             .createdBy(userId.toString())
                             .createdAt(LocalDateTime.now())
                             .deleted(false)
                             .build();
                     blocks.add(block);
-
-                    if (BlockTextUtil.ANALYSABLE_TYPES.contains(blockReq.getType())
-                            && BlockTextUtil.hasText(safeContent)) {
-                        hasTextContent = true;
-                    }
                 }
                 List<JournalBlock> savedBlocks = blockRepository.saveAll(blocks);
                 saved.setBlocks(savedBlocks);
@@ -180,8 +182,8 @@ public class JournalPageServiceImpl implements JournalPageService {
             JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
                     .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
 
-            if (request.getTitle() != null) page.setTitle(request.getTitle());
-            if (request.getDescription() != null) page.setDescription(request.getDescription());
+            if (request.getTitle() != null) page.setTitle(encryptionService.encryptString(request.getTitle()));
+            if (request.getDescription() != null) page.setDescription(encryptionService.encryptString(request.getDescription()));
             if (request.getCoverImageUrl() != null) page.setCoverImageUrl(request.getCoverImageUrl());
             if (request.getIsPrivate() != null) page.setIsPrivate(request.getIsPrivate());
 
@@ -244,7 +246,7 @@ public class JournalPageServiceImpl implements JournalPageService {
         JournalPage page = pageRepository.findByIdAndUserIdAndDeletedFalse(pageId, userId)
                 .orElseThrow(() -> new JournalNotFoundException("Journal page not found: " + pageId));
 
-        String text = BlockTextUtil.aggregateText(page);
+        String text = BlockTextUtil.aggregateText(page, encryptionService);
         if (text.isBlank()) {
             throw new JournalBadRequestException("Page has no text content to analyze.");
         }
@@ -288,8 +290,8 @@ public class JournalPageServiceImpl implements JournalPageService {
                 .id(page.getId())
                 .tenantId(page.getTenantId())
                 .userId(page.getUserId())
-                .title(page.getTitle())
-                .description(page.getDescription())
+                .title(encryptionService.decryptString(page.getTitle()))
+                .description(encryptionService.decryptString(page.getDescription()))
                 .coverImageUrl(page.getCoverImageUrl())
                 .entryDate(page.getEntryDate())
                 .isPrivate(page.getIsPrivate())
@@ -309,7 +311,7 @@ public class JournalPageServiceImpl implements JournalPageService {
             blockResponses = page.getBlocks().stream()
                     .filter(b -> !b.getDeleted() && b.getParentBlock() == null)
                     .sorted(Comparator.comparingInt(JournalBlock::getOrderIndex))
-                    .map(JournalBlockMapper::toResponse)
+                    .map(blockMapper::toResponse)
                     .toList();
         }
 
@@ -342,8 +344,8 @@ public class JournalPageServiceImpl implements JournalPageService {
                 .id(page.getId())
                 .tenantId(page.getTenantId())
                 .userId(page.getUserId())
-                .title(page.getTitle())
-                .description(page.getDescription())
+                .title(encryptionService.decryptString(page.getTitle()))
+                .description(encryptionService.decryptString(page.getDescription()))
                 .coverImageUrl(page.getCoverImageUrl())
                 .entryDate(page.getEntryDate())
                 .isPrivate(page.getIsPrivate())
